@@ -10,7 +10,7 @@ fn main() -> Result<(), eframe::Error> {
     let rt = Runtime::new().expect("Unable to create Runtime");
     let _enter = rt.enter();
 
-    let min_size = [320.0, 240.0];
+    let min_size = [350.0, 500.0];
     let options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
             .with_inner_size(min_size)
@@ -35,7 +35,7 @@ fn main() -> Result<(), eframe::Error> {
         vsync: true,
         ..Default::default()
     };
-    
+
     eframe::run_native(
         "Stash",
         options,

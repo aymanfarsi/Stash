@@ -3,12 +3,15 @@ use std::sync::{
     Arc,
 };
 
-use egui::{CentralPanel, Pos2, RichText, ViewportBuilder, ViewportClass, ViewportId, WindowLevel};
+use egui::{
+    CentralPanel, Pos2, Rect, RichText, ViewportBuilder, ViewportClass, ViewportId, WindowLevel,
+};
 
 use crate::ui::about::AboutViewport;
 
 #[derive(Debug)]
 pub struct StashApp {
+    initial_viewport_center: Pos2,
     pub is_first_run: bool,
 
     pub is_about_open: Arc<AtomicBool>,
@@ -17,6 +20,7 @@ pub struct StashApp {
 impl Default for StashApp {
     fn default() -> Self {
         Self {
+            initial_viewport_center: Pos2::ZERO,
             is_first_run: true,
             is_about_open: Arc::new(AtomicBool::new(false)),
         }
@@ -27,6 +31,12 @@ impl eframe::App for StashApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if self.is_first_run {
             self.is_first_run = false;
+
+            let center = ctx
+                .input(|i| i.viewport().outer_rect)
+                .unwrap_or(Rect::NOTHING)
+                .center();
+            self.initial_viewport_center = Pos2::new(center.x - 170., center.y - 120.);
 
             egui_extras::install_image_loaders(ctx);
         }
@@ -55,7 +65,7 @@ impl eframe::App for StashApp {
             //     }
             //     None => Pos2::new(250.0, 250.0),
             // };
-            let about_pos2 = Pos2::new(250.0, 250.0);
+            let about_pos2 = self.initial_viewport_center;
 
             // * Show about viewport
             ctx.show_viewport_deferred(
