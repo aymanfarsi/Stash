@@ -1,7 +1,13 @@
 [package]
 name = "stash"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
+description = "A new way to manage your bookmarks"
+
+[package.metadata.bundle]
+name = "Stash"
+identifier = "io.github.aymanfarsi.stash"
+icon = ["assets/*.ico"]
 
 [dependencies]
 eframe = { version = "0.27.2", default-features = false, features = [
@@ -25,3 +31,6 @@ tokio = { version = "1.33.0", features = [
     "time",
 ] }
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1.12"
