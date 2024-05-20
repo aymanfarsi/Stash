@@ -1,101 +1,107 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
-#![allow(rustdoc::missing_crate_level_docs)] // it's an example
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{cell::RefCell, rc::Rc};
+
+use eframe::{icon_data::from_png_bytes, Theme};
+use egui::ViewportBuilder;
+use stash::{app::StashApp, enums::TrayMessage, utils::load_icon};
+use tokio::runtime::Runtime;
+use tray_icon::{
+    menu::{Menu, MenuItem, PredefinedMenuItem},
+    TrayIconBuilder,
 };
 
-use eframe::egui;
-
 fn main() -> Result<(), eframe::Error> {
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+    env_logger::init();
+
+    let rt = Runtime::new().expect("Unable to create Runtime");
+    let _enter = rt.enter();
+
+    let menu = Menu::new();
+    menu.append_items(&[
+        &MenuItem::with_id(
+            TrayMessage::ShowHide.to_menu_id(),
+            TrayMessage::ShowHide.to_str(),
+            true,
+            None,
+        ),
+        &PredefinedMenuItem::separator(),
+        // &MenuItem::with_id(
+        //     TrayMessage::About.to_menu_id(),
+        //     TrayMessage::About.to_str(),
+        //     true,
+        //     None,
+        // ),
+        &MenuItem::with_id(
+            TrayMessage::Quit.to_menu_id(),
+            TrayMessage::Quit.to_str(),
+            true,
+            None,
+        ),
+    ])
+    .expect("Failed to append items");
+
+    let icon = load_icon("assets/app-icon.png");
+
+    #[cfg(target_os = "linux")]
+    std::thread::spawn(|| {
+        use tray_icon::menu::Menu;
+
+        gtk::init().unwrap();
+        let _tray_icon = TrayIconBuilder::new()
+            .with_menu(Box::new(menu))
+            .with_icon(icon.clone())
+            .build()
+            .unwrap();
+
+        gtk::main();
+    });
+
+    #[cfg(not(target_os = "linux"))]
+    let mut _tray_icon = Rc::new(RefCell::new(None));
+    #[cfg(not(target_os = "linux"))]
+    let tray_c = _tray_icon.clone();
+
+    let min_size = [320.0, 240.0];
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+        viewport: ViewportBuilder::default()
+            .with_inner_size(min_size)
+            .with_min_inner_size(min_size)
+            .with_decorations(true)
+            .with_transparent(false)
+            .with_close_button(true)
+            .with_maximize_button(false)
+            .with_minimize_button(true)
+            .with_titlebar_buttons_shown(true)
+            .with_drag_and_drop(true)
+            .with_active(true)
+            .with_resizable(true)
+            .with_taskbar(true)
+            .with_visible(true)
+            .with_icon(
+                from_png_bytes(include_bytes!("../assets/app-icon.png"))
+                    .expect("Failed to load icon"),
+            )
+            .with_app_id("io.github.aymanfarsi.stash"),
+        default_theme: Theme::Dark,
+        centered: true,
         ..Default::default()
     };
     eframe::run_native(
-        "Multiple viewports",
+        "Stash",
         options,
-        Box::new(|_cc| Box::<MyApp>::default()),
+        Box::new(move |_cc| {
+            #[cfg(not(target_os = "linux"))]
+            {
+                tray_c.borrow_mut().replace(
+                    TrayIconBuilder::new()
+                        .with_icon(icon)
+                        .with_menu(Box::new(menu))
+                        .build()
+                        .unwrap(),
+                );
+            }
+            Box::<StashApp>::default()
+        }),
     )
-}
-
-#[derive(Default)]
-struct MyApp {
-    /// Immediate viewports are show immediately, so passing state to/from them is easy.
-    /// The downside is that their painting is linked with the parent viewport:
-    /// if either needs repainting, they are both repainted.
-    show_immediate_viewport: bool,
-
-    /// Deferred viewports run independent of the parent viewport, which can save
-    /// CPU if only some of the viewports require repainting.
-    /// However, this requires passing state with `Arc` and locks.
-    show_deferred_viewport: Arc<AtomicBool>,
-}
-
-impl eframe::App for MyApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.label("Hello from the root viewport");
-
-            ui.checkbox(
-                &mut self.show_immediate_viewport,
-                "Show immediate child viewport",
-            );
-
-            let mut show_deferred_viewport = self.show_deferred_viewport.load(Ordering::Relaxed);
-            ui.checkbox(&mut show_deferred_viewport, "Show deferred child viewport");
-            self.show_deferred_viewport
-                .store(show_deferred_viewport, Ordering::Relaxed);
-        });
-
-        if self.show_immediate_viewport {
-            ctx.show_viewport_immediate(
-                egui::ViewportId::from_hash_of("immediate_viewport"),
-                egui::ViewportBuilder::default()
-                    .with_title("Immediate Viewport")
-                    .with_inner_size([200.0, 100.0]),
-                |ctx, class| {
-                    assert!(
-                        class == egui::ViewportClass::Immediate,
-                        "This egui backend doesn't support multiple viewports"
-                    );
-
-                    egui::CentralPanel::default().show(ctx, |ui| {
-                        ui.label("Hello from immediate viewport");
-                    });
-
-                    if ctx.input(|i| i.viewport().close_requested()) {
-                        // Tell parent viewport that we should not show next frame:
-                        self.show_immediate_viewport = false;
-                    }
-                },
-            );
-        }
-
-        if self.show_deferred_viewport.load(Ordering::Relaxed) {
-            let show_deferred_viewport = self.show_deferred_viewport.clone();
-            ctx.show_viewport_deferred(
-                egui::ViewportId::from_hash_of("deferred_viewport"),
-                egui::ViewportBuilder::default()
-                    .with_title("Deferred Viewport")
-                    .with_inner_size([200.0, 100.0]),
-                move |ctx, class| {
-                    assert!(
-                        class == egui::ViewportClass::Deferred,
-                        "This egui backend doesn't support multiple viewports"
-                    );
-
-                    egui::CentralPanel::default().show(ctx, |ui| {
-                        ui.label("Hello from deferred viewport");
-                    });
-                    if ctx.input(|i| i.viewport().close_requested()) {
-                        // Tell parent to close us.
-                        show_deferred_viewport.store(false, Ordering::Relaxed);
-                    }
-                },
-            );
-        }
-    }
 }
