@@ -9,9 +9,6 @@ use crate::ui::about::AboutViewport;
 
 #[derive(Debug)]
 pub struct StashApp {
-    version: String,
-    description: String,
-
     pub is_first_run: bool,
 
     pub is_about_open: Arc<AtomicBool>,
@@ -19,23 +16,7 @@ pub struct StashApp {
 
 impl Default for StashApp {
     fn default() -> Self {
-        let cargo_text = include_str!("../Cargo.toml");
-        let version = cargo_text
-            .lines()
-            .find(|line| line.starts_with("version = "))
-            .map(|line| line.split('=').last().unwrap().trim())
-            .unwrap_or("unknown")
-            .replace('"', "");
-        let description = cargo_text
-            .lines()
-            .find(|line| line.starts_with("description = "))
-            .map(|line| line.split('=').last().unwrap().trim())
-            .unwrap_or("unknown")
-            .replace('"', "");
-
         Self {
-            version,
-            description,
             is_first_run: true,
             is_about_open: Arc::new(AtomicBool::new(false)),
         }
@@ -62,8 +43,6 @@ impl eframe::App for StashApp {
         // * About viewport
         if self.is_about_open.load(Ordering::Relaxed) {
             let is_about_open = self.is_about_open.clone();
-            let version = self.version.clone();
-            let description = self.description.clone();
 
             let min_size = [320.0, 240.0];
             // let outer_size = ctx.input(|i| i.viewport().outer_rect);
@@ -96,11 +75,8 @@ impl eframe::App for StashApp {
                         "This egui backend doesn't support multiple viewports"
                     );
 
-                    let version = version.clone();
-                    let description = description.clone();
-
                     // * About UI
-                    AboutViewport::default().ui(ctx, &is_about_open, &version, &description);
+                    AboutViewport::default().ui(ctx, &is_about_open);
                 },
             );
         }
