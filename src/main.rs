@@ -7,8 +7,6 @@ use tokio::runtime::Runtime;
 use stash::app::StashApp;
 
 fn main() -> Result<(), eframe::Error> {
-    env_logger::init();
-
     let rt = Runtime::new().expect("Unable to create Runtime");
     let _enter = rt.enter();
 
@@ -20,10 +18,9 @@ fn main() -> Result<(), eframe::Error> {
             .with_decorations(true)
             .with_transparent(false)
             .with_close_button(true)
-            .with_maximize_button(false)
+            .with_maximize_button(true)
             .with_minimize_button(true)
-            .with_titlebar_buttons_shown(true)
-            .with_drag_and_drop(true)
+            .with_drag_and_drop(false)
             .with_active(true)
             .with_resizable(true)
             .with_taskbar(true)
@@ -35,8 +32,10 @@ fn main() -> Result<(), eframe::Error> {
             .with_app_id("io.github.aymanfarsi.stash"),
         default_theme: Theme::Dark,
         centered: true,
+        vsync: true,
         ..Default::default()
     };
+    
     eframe::run_native(
         "Stash",
         options,

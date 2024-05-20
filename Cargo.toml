@@ -6,8 +6,7 @@ edition = "2021"
 [dependencies]
 eframe = { version = "0.27.2", default-features = false, features = [
     "default_fonts",
-    "wgpu",
-
+    "glow",
 ] }
 egui = { version = "0.27.2", features = [
     # "persistence",
@@ -15,7 +14,6 @@ egui = { version = "0.27.2", features = [
     "rayon",
     "unity",
 ] }
-env_logger = "0.11.3"
 image = "0.25.1"
 serde = { version = "1.0.202", features = ["derive"] }
 serde_json = { version = "1.0.117" }
