@@ -2,7 +2,7 @@
 name = "stash"
 version = "0.0.1"
 edition = "2021"
-description = "A new way to manage your bookmarks"
+description = "A new way to manage your bookmarks!"
 
 [package.metadata.bundle]
 name = "Stash"
@@ -20,7 +20,9 @@ egui = { version = "0.27.2", features = [
     "rayon",
     "unity",
 ] }
-image = "0.25.1"
+egui_extras = { version = "0.27.2", features = ["all_loaders"] }
+image = { version = "0.25.1", features = ["png"] }
+ehttp = { version = "0.5.0", features = [] }
 serde = { version = "1.0.202", features = ["derive"] }
 serde_json = { version = "1.0.117" }
 tray-icon = { version = "0.14.0" }
