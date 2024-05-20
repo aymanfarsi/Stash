@@ -41,14 +41,27 @@ impl eframe::App for StashApp {
             let is_about_open = self.is_about_open.clone();
 
             let min_size = [320.0, 240.0];
-            let centered_pos = Pos2::new(250., 250.);
+            // let outer_size = ctx.input(|i| i.viewport().outer_rect);
+            // let about_pos2 = match outer_size {
+            //     Some(outer_size) => {
+            //         let outer_center = outer_size.center();
+            //         let x = outer_center.x - min_size[0] / 2.0 + 50.;
+            //         let y = outer_center.y - min_size[1] / 2.0 + 50.;
+            //         Pos2::new(x, y)
+            //     }
+            //     None => Pos2::new(250.0, 250.0),
+            // };
+            let about_pos2 = Pos2::new(250.0, 250.0);
 
             ctx.show_viewport_deferred(
                 egui::ViewportId::from_hash_of("about_viewport"),
                 egui::ViewportBuilder::default()
                     .with_title("About")
-                    .with_position(Pos2::new(centered_pos.x, centered_pos.y))
+                    .with_position(about_pos2)
                     .with_inner_size(min_size)
+                    .with_resizable(false)
+                    .with_maximize_button(false)
+                    .with_minimize_button(false)
                     .with_min_inner_size(min_size),
                 move |ctx, class| {
                     assert!(
