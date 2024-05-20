@@ -55,16 +55,6 @@ impl eframe::App for StashApp {
             let is_about_open = self.is_about_open.clone();
 
             let min_size = [320.0, 240.0];
-            // let outer_size = ctx.input(|i| i.viewport().outer_rect);
-            // let about_pos2 = match outer_size {
-            //     Some(outer_size) => {
-            //         let outer_center = outer_size.center();
-            //         let x = outer_center.x - min_size[0] / 2.0 + 50.;
-            //         let y = outer_center.y - min_size[1] / 2.0 + 50.;
-            //         Pos2::new(x, y)
-            //     }
-            //     None => Pos2::new(250.0, 250.0),
-            // };
             let about_pos2 = self.initial_viewport_center;
 
             // * Show about viewport

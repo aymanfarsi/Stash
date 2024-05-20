@@ -89,14 +89,6 @@ impl AboutViewport {
             });
         });
 
-        // * Close viewport on lost focus
-        // let is_lost_focus = ctx.input(|i| i.viewport().focused);
-        // if let Some(is_lost_focus) = is_lost_focus {
-        //     if !is_lost_focus {
-        //         is_about_open.store(false, Ordering::Relaxed);
-        //     }
-        // }
-
         // * Close viewport on close button
         if ctx.input(|i| i.viewport().close_requested()) {
             // Tell parent to close us.
