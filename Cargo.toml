@@ -22,7 +22,6 @@ egui = { version = "0.27.2", features = [
 ] }
 egui_extras = { version = "0.27.2", features = ["all_loaders"] }
 image = { version = "0.25.1", features = ["png"] }
-ehttp = { version = "0.5.0", features = [] }
 serde = { version = "1.0.202", features = ["derive"] }
 serde_json = { version = "1.0.117" }
 tray-icon = { version = "0.14.0" }
@@ -34,6 +33,7 @@ tokio = { version = "1.33.0", features = [
 ] }
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 lazy_static = "1.4.0"
+egui-phosphor = "0.5.0"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1.12"

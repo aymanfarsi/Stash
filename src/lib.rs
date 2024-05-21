@@ -4,4 +4,5 @@ pub mod utils {
 }
 pub mod ui {
     pub mod about;
+    pub mod components;
 }

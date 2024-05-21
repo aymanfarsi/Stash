@@ -8,4 +8,4 @@ else
     echo "Building for Linux"
 fi
 
-cargo bundle --release
+cargo bundle --format msi --release

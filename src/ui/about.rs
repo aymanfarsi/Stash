@@ -46,12 +46,17 @@ impl AboutViewport {
 
                 ui.vertical_centered(|ui| {
                     ui.label(RichText::new("Stash").size(24.0).strong());
-                    ui.label(RichText::new(format!("v{}", *VERSION)).size(14.0));
+                    ui.label(
+                        RichText::new(format!("v{}", *VERSION))
+                            .size(14.0)
+                            .small()
+                            .underline(),
+                    );
                 });
 
                 ui.add_space(7.0);
 
-                ui.label(RichText::new(format!("{}.", *DESCRIPTION)).size(16.0));
+                ui.label(RichText::new((*DESCRIPTION).to_string()).size(16.0));
             });
 
             ui.add_space(7.0);
@@ -83,7 +88,7 @@ impl AboutViewport {
                         .open_in_new_tab(true),
                 )
                 .on_hover_ui(|ui| {
-                    ui.label(RichText::new("Immediate mode GUI library by emilk"));
+                    ui.label(RichText::new("Immediate GUI library by emilk"));
                 });
                 ui.label(".");
             });
