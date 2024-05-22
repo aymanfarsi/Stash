@@ -6,7 +6,7 @@ use std::sync::{
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use egui::{
     CentralPanel, CursorIcon, FontDefinitions, Pos2, Rect, RichText, TopBottomPanel,
-    ViewportBuilder, ViewportClass, ViewportId, WindowLevel,
+    ViewportBuilder, ViewportClass, ViewportCommand, ViewportId, WindowLevel,
 };
 use egui_phosphor::regular;
 use lazy_static::lazy_static;
@@ -31,6 +31,7 @@ lazy_static! {
 pub struct StashApp {
     is_first_run: bool,
     initial_viewport_center: Pos2,
+    window_level: WindowLevel,
 
     is_about_open: Arc<AtomicBool>,
     is_add_topic_open: Arc<AtomicBool>,
@@ -49,6 +50,7 @@ impl StashApp {
         Self {
             is_first_run: true,
             initial_viewport_center: Pos2::ZERO,
+            window_level: WindowLevel::Normal,
 
             is_about_open: Arc::new(AtomicBool::new(false)),
 
@@ -86,14 +88,31 @@ impl eframe::App for StashApp {
             match msg {
                 AppMessage::AddTopic(topic) => {
                     println!("Adding topic: {:?}", topic);
-
                     self.bookmark_manager.add_topic(BookmarkItem::Topic(topic));
+                    ctx.request_repaint();
                 }
                 AppMessage::AddLink(topic, link) => {
                     println!("Adding link: {:?} to topic: {:?}", link, topic.name);
-
                     self.bookmark_manager
                         .add_link(BookmarkItem::Topic(topic), BookmarkItem::Link(link));
+                    ctx.request_repaint();
+                }
+                AppMessage::ToggleAlwaysOnTop => {
+                    self.window_level = match self.window_level {
+                        WindowLevel::Normal => {
+                            ctx.send_viewport_cmd(ViewportCommand::Title(
+                                "Stash: AlwaysOnTop".to_owned(),
+                            ));
+                            WindowLevel::AlwaysOnTop
+                        }
+                        WindowLevel::AlwaysOnTop => {
+                            ctx.send_viewport_cmd(ViewportCommand::Title("Stash".to_owned()));
+                            WindowLevel::Normal
+                        }
+                        _ => WindowLevel::Normal,
+                    };
+                    ctx.send_viewport_cmd(ViewportCommand::WindowLevel(self.window_level));
+                    ctx.request_repaint();
                 }
             }
         }
@@ -107,13 +126,22 @@ impl eframe::App for StashApp {
                 ui.add_space(5.);
                 ui.horizontal(|ui| {
                     let info = ui.label(RichText::new(regular::INFO.to_string()).size(20.));
-                    if info.clicked() {
-                        let is_about_open = self.is_about_open.load(Ordering::Relaxed);
-                        self.is_about_open.store(!is_about_open, Ordering::Relaxed);
-                    }
                     if info.hovered() {
                         ui.output_mut(|o| o.cursor_icon = CursorIcon::Default);
                     }
+                    info.context_menu(|ui| {
+                        if ui.button("Toggle AlwaysOnTop").clicked() {
+                            self.tx
+                                .send(AppMessage::ToggleAlwaysOnTop)
+                                .expect("Unable to send");
+                            ui.close_menu();
+                        }
+                        if ui.button("About").clicked() {
+                            let is_about_open = self.is_about_open.load(Ordering::Relaxed);
+                            self.is_about_open.store(!is_about_open, Ordering::Relaxed);
+                            ui.close_menu();
+                        }
+                    });
 
                     let available_width = ui.available_width();
                     let label = "Add Topic";

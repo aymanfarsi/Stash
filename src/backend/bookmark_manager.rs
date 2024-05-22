@@ -1,12 +1,11 @@
-use std::collections::{hash_map::Entry, HashMap};
-
-use crate::utils::enums::BookmarkItem;
+use indexmap::IndexMap;
 
 use super::models::{LinkModel, TopicModel};
+use crate::utils::enums::BookmarkItem;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct BookmarkManager {
-    bookmarks: HashMap<BookmarkItem, Vec<BookmarkItem>>,
+    bookmarks: IndexMap<BookmarkItem, Vec<BookmarkItem>>,
 }
 
 impl BookmarkManager {
@@ -19,7 +18,7 @@ impl BookmarkManager {
     }
 
     pub fn remove_topic(&mut self, topic: BookmarkItem) {
-        self.bookmarks.remove(&topic);
+        self.bookmarks.shift_remove(&topic);
     }
 
     pub fn get_topics(&self) -> Vec<TopicModel> {
@@ -33,8 +32,8 @@ impl BookmarkManager {
     }
 
     pub fn add_link(&mut self, topic: BookmarkItem, link: BookmarkItem) {
-        if let Entry::Vacant(e) = self.bookmarks.entry(topic.clone()) {
-            e.insert(vec![link]);
+        if !self.bookmarks.contains_key(&topic) {
+            self.bookmarks.insert(topic.clone(), vec![]);
         } else {
             self.bookmarks.get_mut(&topic).unwrap().push(link);
         }

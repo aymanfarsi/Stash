@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use crossbeam::channel::Sender;
-use egui::{CentralPanel, Grid, RichText, ViewportCommand};
+use egui::{CentralPanel, Grid, Key, RichText, ViewportCommand};
 
 use crate::{backend::models::TopicModel, utils::enums::AppMessage};
 
@@ -39,7 +39,12 @@ impl AddTopicViewport {
                 .spacing([35., 9.])
                 .show(ui, |ui| {
                     ui.label("Name:");
+
                     ui.text_edit_singleline(&mut self.name);
+                    if ui.input(|i| i.key_pressed(Key::Enter)) {
+                        self.send_topic(ctx, tx);
+                    }
+
                     ui.end_row();
                 });
 
@@ -54,19 +59,7 @@ impl AddTopicViewport {
                 ui.add_space(spacing_around);
 
                 custom_button(ui, "Add Topic", Some(button_width), || {
-                    if !self.name.is_empty() {
-                        let topic = TopicModel::new(self.name.clone());
-                        let res = tx.send(AppMessage::AddTopic(topic));
-                        match res {
-                            Ok(_) => {
-                                self.name.clear();
-                                ctx.send_viewport_cmd(ViewportCommand::Close);
-                            }
-                            Err(e) => {
-                                eprintln!("Error: {}", e);
-                            }
-                        }
-                    }
+                    self.send_topic(ctx, tx);
                 });
 
                 ui.add_space(button_spacing);
@@ -84,6 +77,22 @@ impl AddTopicViewport {
         if ctx.input(|i| i.viewport().close_requested()) {
             // Tell parent to close us.
             is_open.store(false, Ordering::Relaxed);
+        }
+    }
+
+    fn send_topic(&mut self, ctx: &egui::Context, tx: &Sender<AppMessage>) {
+        if !self.name.is_empty() {
+            let topic = TopicModel::new(self.name.clone());
+            let res = tx.send(AppMessage::AddTopic(topic));
+            match res {
+                Ok(_) => {
+                    self.name.clear();
+                    ctx.send_viewport_cmd(ViewportCommand::Close);
+                }
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                }
+            }
         }
     }
 }

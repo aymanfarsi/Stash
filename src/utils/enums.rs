@@ -4,6 +4,7 @@ use crate::backend::models::{LinkModel, TopicModel};
 pub enum AppMessage {
     AddTopic(TopicModel),
     AddLink(TopicModel, LinkModel),
+    ToggleAlwaysOnTop,
 }
 
 impl AppMessage {}
