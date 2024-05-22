@@ -1,0 +1,21 @@
+- [ ] Stash configuration
+  - [ ] Load configuration
+  - [ ] Save configuration
+- [ ] Bookmarks
+  - [ ] Load bookmarks
+  - [ ] Save bookmarks
+- [ ] Topic
+  - [ ] Add topic
+  - [ ] Topic UI
+  - [ ] Open all links with a topic
+  - [ ] Context menu
+    - [ ] Add link
+    - [ ] Edit topic name
+    - [ ] Delete topic
+- [ ] Link
+  - [ ] Add link
+  - [ ] Link UI
+  - [ ] Open specific link
+  - [ ] Context menu
+    - [ ] Edit title
+    - [ ] Delete link
