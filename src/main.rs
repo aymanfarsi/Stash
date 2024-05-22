@@ -39,6 +39,10 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "Stash",
         options,
-        Box::new(move |_cc| Box::<StashApp>::default()),
+        Box::new(move |_cc| {
+            let app = StashApp::new();
+            
+            Box::new(app)
+        }),
     )
 }

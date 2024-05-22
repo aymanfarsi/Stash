@@ -1,43 +1,60 @@
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc,
+    Arc, Mutex,
 };
 
-use crossbeam::channel::{Receiver, Sender};
+use crossbeam::channel::{unbounded, Receiver, Sender};
 use egui::{
     CentralPanel, CursorIcon, FontDefinitions, Pos2, Rect, RichText, TopBottomPanel,
     ViewportBuilder, ViewportClass, ViewportId, WindowLevel,
 };
 use egui_phosphor::regular;
+use lazy_static::lazy_static;
 
 use crate::{
-    ui::{
-        about::AboutViewport,
-        components::{calc_btn_size_from_text, custom_button, custom_header},
+    backend::bookmark_manager::BookmarkManager,
+    ui::{about::AboutViewport, add_topic::AddTopicViewport, components::custom_button},
+    utils::{
+        calc_btn_size_from_text,
+        enums::{AppMessage, BookmarkItem},
     },
-    utils::enums::AppMessage,
 };
+
+lazy_static! {
+    static ref ABOUT_VIEWPORT: AboutViewport = AboutViewport::default();
+    static ref ADD_TOPIC_VIEWPORT: Mutex<AddTopicViewport> =
+        Mutex::new(AddTopicViewport::default());
+    static ref MIN_SIZE: [f32; 2] = [320.0, 240.0];
+}
 
 #[derive(Debug)]
 pub struct StashApp {
     is_first_run: bool,
     initial_viewport_center: Pos2,
 
-    pub is_about_open: Arc<AtomicBool>,
+    is_about_open: Arc<AtomicBool>,
+    is_add_topic_open: Arc<AtomicBool>,
+
+    bookmark_manager: BookmarkManager,
 
     tx: Sender<AppMessage>,
     rx: Receiver<AppMessage>,
 }
 
-impl Default for StashApp {
-    fn default() -> Self {
-        let (tx, rx) = crossbeam::channel::unbounded::<AppMessage>();
+impl StashApp {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        let (tx, rx) = unbounded::<AppMessage>();
 
         Self {
             is_first_run: true,
             initial_viewport_center: Pos2::ZERO,
 
             is_about_open: Arc::new(AtomicBool::new(false)),
+
+            is_add_topic_open: Arc::new(AtomicBool::new(false)),
+
+            bookmark_manager: BookmarkManager::default(),
 
             tx,
             rx,
@@ -67,11 +84,16 @@ impl eframe::App for StashApp {
         // * Handle app messages
         if let Ok(msg) = self.rx.try_recv() {
             match msg {
-                AppMessage::AddTopic => {
-                    println!("Add Topic");
+                AppMessage::AddTopic(topic) => {
+                    println!("Adding topic: {:?}", topic);
+
+                    self.bookmark_manager.add_topic(BookmarkItem::Topic(topic));
                 }
-                AppMessage::AddLink => {
-                    println!("Add Link");
+                AppMessage::AddLink(topic, link) => {
+                    println!("Adding link: {:?} to topic: {:?}", link, topic.name);
+
+                    self.bookmark_manager
+                        .add_link(BookmarkItem::Topic(topic), BookmarkItem::Link(link));
                 }
             }
         }
@@ -98,37 +120,39 @@ impl eframe::App for StashApp {
 
                     ui.add_space(available_width - calc_btn_size_from_text(label));
 
-                    custom_button(ui, label, || {
-                        self.tx
-                            .send(AppMessage::AddTopic)
-                            .expect("Failed to send AddTopic message");
+                    custom_button(ui, label, None, || {
+                        let is_add_topic_open = self.is_add_topic_open.load(Ordering::Relaxed);
+                        self.is_add_topic_open
+                            .store(!is_add_topic_open, Ordering::Relaxed);
                     });
                 });
             });
 
         // * Main UI
         CentralPanel::default().show(ctx, |ui| {
-            ui.label(RichText::new("Stash").size(32.0));
+            let topics = self.bookmark_manager.get_topics();
+            for topic in topics {
+                ui.label(RichText::new(topic.name.clone()).size(20.));
 
-            ui.add_space(10.0);
-
-            custom_header(ui, "Topic 1", || {
-                println!("Expand Topic 1");
-            });
-
-            ui.add_space(10.0);
-
-            custom_header(ui, "Link 1", || {
-                println!("View Link 1");
-            });
+                let links = self
+                    .bookmark_manager
+                    .get_links_for_topic(&BookmarkItem::Topic(topic));
+                if links.is_empty() {
+                    ui.label("| No links found");
+                } else {
+                    for link in links {
+                        ui.label(format!("| {}", link.title));
+                    }
+                }
+            }
         });
 
         // * About viewport
         if self.is_about_open.load(Ordering::Relaxed) {
             let is_about_open = self.is_about_open.clone();
 
-            let min_size = [320.0, 240.0];
             let about_pos2 = self.initial_viewport_center;
+            let min_size = *MIN_SIZE;
 
             // * Show about viewport
             ctx.show_viewport_deferred(
@@ -149,7 +173,42 @@ impl eframe::App for StashApp {
                     );
 
                     // * About UI
-                    AboutViewport::default().ui(ctx, &is_about_open);
+                    ABOUT_VIEWPORT.ui(ctx, &is_about_open);
+                },
+            );
+        }
+
+        // * Add topic viewport
+        if self.is_add_topic_open.load(Ordering::Relaxed) {
+            let is_add_topic_open = self.is_add_topic_open.clone();
+            let tx = self.tx.clone();
+
+            let add_topic_pos2 = self.initial_viewport_center;
+            let min_size = *MIN_SIZE;
+
+            // * Show add topic viewport
+            ctx.show_viewport_deferred(
+                ViewportId::from_hash_of("add_topic_viewport"),
+                ViewportBuilder::default()
+                    .with_title("Add Topic")
+                    .with_position(add_topic_pos2)
+                    .with_inner_size(min_size)
+                    .with_resizable(false)
+                    .with_maximize_button(false)
+                    .with_minimize_button(false)
+                    .with_window_level(WindowLevel::Normal)
+                    .with_min_inner_size(min_size),
+                move |ctx, class| {
+                    assert!(
+                        class == ViewportClass::Deferred,
+                        "This egui backend doesn't support multiple viewports"
+                    );
+
+                    // * Add topic UI
+                    ADD_TOPIC_VIEWPORT
+                        .lock()
+                        .expect("Unable to lock AddTopicViewport")
+                        .ui(ctx, &is_add_topic_open, &tx);
                 },
             );
         }

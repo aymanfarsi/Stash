@@ -1,8 +1,4 @@
 pub mod app;
-pub mod utils {
-    pub mod enums;
-}
-pub mod ui {
-    pub mod about;
-    pub mod components;
-}
+pub mod utils;
+pub mod ui;
+pub mod backend;

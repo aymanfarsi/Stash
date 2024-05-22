@@ -31,7 +31,7 @@ lazy_static! {
 pub struct AboutViewport {}
 
 impl AboutViewport {
-    pub fn ui(&self, ctx: &egui::Context, is_about_open: &Arc<AtomicBool>) {
+    pub fn ui(&self, ctx: &egui::Context, is_open: &Arc<AtomicBool>) {
         CentralPanel::default().show(ctx, |ui| {
             ui.add_space(7.0);
 
@@ -97,7 +97,7 @@ impl AboutViewport {
         // * Close viewport on close button
         if ctx.input(|i| i.viewport().close_requested()) {
             // Tell parent to close us.
-            is_about_open.store(false, Ordering::Relaxed);
+            is_open.store(false, Ordering::Relaxed);
         }
     }
 }
