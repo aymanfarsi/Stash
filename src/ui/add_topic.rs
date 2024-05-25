@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use crossbeam::channel::Sender;
-use egui::{CentralPanel, Grid, Key, RichText, ViewportCommand};
+use egui::{CentralPanel, Frame, Grid, Key, Margin, RichText, Rounding, ViewportCommand};
 
 use crate::{backend::models::TopicModel, utils::enums::AppMessage};
 
@@ -34,7 +34,6 @@ impl AddTopicViewport {
 
             Grid::new("add_topic_grid")
                 .num_columns(2)
-                .spacing([40., 4.])
                 .striped(false)
                 .spacing([35., 9.])
                 .show(ui, |ui| {
@@ -71,6 +70,23 @@ impl AddTopicViewport {
 
                 ui.add_space(spacing_around);
             });
+
+            Frame::group(ui.style())
+                .rounding(Rounding::same(9.))
+                .outer_margin(Margin::same(9.))
+                .show(ui, |ui| {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.spacing_mut().item_spacing.x = 0.;
+                        ui.spacing_mut().item_spacing.y = 5.;
+
+                        ui.label(RichText::new(
+                            "Press 'Enter' or click on button to add topic.\n",
+                        ));
+                        ui.label(RichText::new(
+                            "If the new topic already exists, it will be ignored. ",
+                        ));
+                    });
+                });
         });
 
         // * Close viewport on close button

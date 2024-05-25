@@ -1,9 +1,9 @@
 - [ ] Stash configuration
   - [ ] Load configuration
   - [ ] Save configuration
-- [ ] Bookmarks
-  - [ ] Load bookmarks
-  - [ ] Save bookmarks
+- [X] Bookmarks
+  - [X] Load bookmarks
+  - [X] Save bookmarks
 - [ ] Topic
   - [ ] Add topic
   - [ ] Topic UI

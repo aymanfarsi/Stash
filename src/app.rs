@@ -5,8 +5,9 @@ use std::sync::{
 
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use egui::{
-    CentralPanel, CursorIcon, FontDefinitions, Pos2, Rect, RichText, TopBottomPanel,
-    ViewportBuilder, ViewportClass, ViewportCommand, ViewportId, WindowLevel,
+    collapsing_header, CentralPanel, CursorIcon, FontDefinitions, Frame, Margin, Pos2, Rect,
+    RichText, TopBottomPanel, ViewportBuilder, ViewportClass, ViewportCommand, ViewportId,
+    WindowLevel,
 };
 use egui_phosphor::regular;
 use lazy_static::lazy_static;
@@ -37,6 +38,7 @@ pub struct StashApp {
     is_add_topic_open: Arc<AtomicBool>,
 
     bookmark_manager: BookmarkManager,
+    expanded_topics: Vec<bool>,
 
     tx: Sender<AppMessage>,
     rx: Receiver<AppMessage>,
@@ -47,16 +49,23 @@ impl StashApp {
     pub fn new() -> Self {
         let (tx, rx) = unbounded::<AppMessage>();
 
+        let bookmark_manager = BookmarkManager::default();
+        let expanded_topics = bookmark_manager
+            .get_topics()
+            .iter()
+            .map(|_| false)
+            .collect();
+
         Self {
             is_first_run: true,
             initial_viewport_center: Pos2::ZERO,
             window_level: WindowLevel::Normal,
 
             is_about_open: Arc::new(AtomicBool::new(false)),
-
             is_add_topic_open: Arc::new(AtomicBool::new(false)),
 
-            bookmark_manager: BookmarkManager::default(),
+            bookmark_manager,
+            expanded_topics,
 
             tx,
             rx,
@@ -86,17 +95,61 @@ impl eframe::App for StashApp {
         // * Handle app messages
         if let Ok(msg) = self.rx.try_recv() {
             match msg {
+                // * Topics
                 AppMessage::AddTopic(topic) => {
                     println!("Adding topic: {:?}", topic);
+
                     self.bookmark_manager.add_topic(BookmarkItem::Topic(topic));
+                    self.expanded_topics.push(false);
                     ctx.request_repaint();
                 }
+                AppMessage::EditTopic(topic) => {
+                    println!("Editing topic: {:?}", topic);
+                }
+                AppMessage::RemoveTopic(topic) => {
+                    println!("Removing topic: {:?}", topic);
+
+                    self.bookmark_manager
+                        .remove_topic(BookmarkItem::Topic(topic.clone()));
+
+                    let idx = self
+                        .bookmark_manager
+                        .get_topics()
+                        .iter()
+                        .position(|t| t == &topic)
+                        .unwrap_or_default();
+                    self.expanded_topics.remove(idx);
+
+                    ctx.request_repaint();
+                }
+
+                // * Links
                 AppMessage::AddLink(topic, link) => {
                     println!("Adding link: {:?} to topic: {:?}", link, topic.name);
+
                     self.bookmark_manager
                         .add_link(BookmarkItem::Topic(topic), BookmarkItem::Link(link));
                     ctx.request_repaint();
                 }
+                AppMessage::EditLink(topic, link) => {
+                    println!("Editing link: {:?} in topic: {:?}", link, topic.name);
+                }
+                AppMessage::RemoveLink(topic, link) => {
+                    println!("Removing link: {:?} from topic: {:?}", link, topic.name);
+
+                    self.bookmark_manager
+                        .remove_link(BookmarkItem::Topic(topic), BookmarkItem::Link(link));
+                    ctx.request_repaint();
+                }
+
+                // * UI
+                AppMessage::ToggleCollapsed(index) => {
+                    let is_expanded = self.expanded_topics.get(index).copied().unwrap_or(false);
+                    self.expanded_topics[index] = !is_expanded;
+                    ctx.request_repaint();
+                }
+
+                // * Misc
                 AppMessage::ToggleAlwaysOnTop => {
                     self.window_level = match self.window_level {
                         WindowLevel::Normal => {
@@ -158,20 +211,88 @@ impl eframe::App for StashApp {
 
         // * Main UI
         CentralPanel::default().show(ctx, |ui| {
-            let topics = self.bookmark_manager.get_topics();
-            for topic in topics {
-                ui.label(RichText::new(topic.name.clone()).size(20.));
+            for (idx, topic) in self.bookmark_manager.get_topics().into_iter().enumerate() {
+                let id = ui.make_persistent_id(format!(
+                    "topic_{}_{}",
+                    topic.name.replace(' ', "_"),
+                    idx
+                ));
+                let is_expanded = self.expanded_topics.get(idx).copied().unwrap_or(false);
 
-                let links = self
-                    .bookmark_manager
-                    .get_links_for_topic(&BookmarkItem::Topic(topic));
-                if links.is_empty() {
-                    ui.label("| No links found");
-                } else {
-                    for link in links {
-                        ui.label(format!("| {}", link.title));
+                let mut state = collapsing_header::CollapsingState::load_with_default_open(
+                    ui.ctx(),
+                    id,
+                    is_expanded,
+                );
+
+                state.set_open(is_expanded);
+
+                // ? Topic header
+                let header_res = ui.horizontal(|ui| {
+                    let icon = if !is_expanded {
+                        regular::CARET_RIGHT
+                    } else {
+                        regular::CARET_DOUBLE_DOWN
+                    };
+
+                    let resp = ui.label(RichText::new(icon).size(12.));
+                    if resp.clicked() {
+                        self.tx
+                            .send(AppMessage::ToggleCollapsed(idx))
+                            .expect("Unable to send");
                     }
-                }
+                    if resp.hovered() {
+                        ui.output_mut(|o| o.cursor_icon = CursorIcon::Default);
+                    }
+
+                    Frame::group(ui.style())
+                        .inner_margin(Margin::same(9.))
+                        .show(ui, |ui| {
+                            let topic_label = ui.label(RichText::new(topic.name.clone()).size(20.));
+                            if topic_label.clicked() {
+                                self.tx
+                                    .send(AppMessage::ToggleCollapsed(idx))
+                                    .expect("Unable to send");
+                            }
+                            if topic_label.hovered() {
+                                ui.output_mut(|o| o.cursor_icon = CursorIcon::Default);
+                            }
+                            topic_label.context_menu(|ui| {
+                                if ui.button("Add Link").clicked() {
+                                    println!("Add link to topic: {:?}", topic);
+                                    ui.close_menu();
+                                }
+                                if ui.button("Edit topic name").clicked() {
+                                    self.tx
+                                        .send(AppMessage::EditTopic(topic.clone()))
+                                        .expect("Unable to send");
+                                    ui.close_menu();
+                                }
+                                if ui.button("Remove Topic").clicked() {
+                                    self.tx
+                                        .send(AppMessage::RemoveTopic(topic.clone()))
+                                        .expect("Unable to send");
+                                    ui.close_menu();
+                                }
+                            });
+                        });
+                });
+
+                state.show_body_indented(&header_res.response, ui, |ui| {
+                    // ? Links UI
+                    let links = self
+                        .bookmark_manager
+                        .get_links_for_topic(&BookmarkItem::Topic(topic));
+                    if links.is_empty() {
+                        ui.vertical_centered(|ui| {
+                            ui.label("No links!");
+                        });
+                    } else {
+                        for link in links {
+                            ui.label(link.title);
+                        }
+                    }
+                });
             }
         });
 
