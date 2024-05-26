@@ -9,6 +9,7 @@ use egui::{
     CursorIcon, FontDefinitions, Frame, Margin, Pos2, Rect, RichText, Rounding, ScrollArea,
     TopBottomPanel, ViewportBuilder, ViewportClass, ViewportCommand, ViewportId, WindowLevel,
 };
+use egui_modal::{Modal, ModalStyle};
 use egui_phosphor::regular;
 use lazy_static::lazy_static;
 
@@ -44,6 +45,7 @@ pub struct StashApp {
 
     bookmark_manager: BookmarkManager,
     expanded_topics: Vec<bool>,
+    links_to_open: Vec<String>,
 
     tx: Sender<AppMessage>,
     rx: Receiver<AppMessage>,
@@ -72,6 +74,7 @@ impl StashApp {
 
             bookmark_manager,
             expanded_topics,
+            links_to_open: Vec::new(),
 
             tx,
             rx,
@@ -147,6 +150,44 @@ impl eframe::App for StashApp {
             egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
             ctx.set_fonts(fonts);
         }
+
+        let min_size = *MIN_SIZE;
+
+        // * Open modal
+        let model_style = ModalStyle {
+            default_width: Some(min_size[0] - 20.),
+            ..Default::default()
+        };
+        let modal = Modal::new(ctx, "open_links_confirmation_modal")
+            .with_close_on_outside_click(true)
+            .with_style(&model_style);
+        modal.show(|ui| {
+            modal.title(ui, "Opening links");
+            modal.frame(ui, |ui| {
+                modal.body(
+                    ui,
+                    format!(
+                        "Are you sure you want to open {} {}?",
+                        self.links_to_open.len(),
+                        if self.links_to_open.len() == 1 {
+                            "link"
+                        } else {
+                            "links"
+                        }
+                    ),
+                );
+            });
+            modal.buttons(ui, |ui| {
+                if modal.button(ui, "Open").clicked() {
+                    open_urls(&self.links_to_open);
+                    self.links_to_open.clear();
+                };
+
+                if modal.button(ui, "Close").clicked() {
+                    self.links_to_open.clear();
+                };
+            });
+        });
 
         // * Handle app messages
         if let Ok(msg) = self.rx.try_recv() {
@@ -354,15 +395,20 @@ impl eframe::App for StashApp {
                                         }
 
                                         let available_width = ui.available_width();
-                                        let label = "Add Link";
+                                        let label = "Open All";
 
                                         ui.add_space(
                                             available_width - calc_btn_size_from_text(label),
                                         );
 
                                         custom_button(ui, label, None, || {
-                                            self.open_add_link_viewport(topic.name.clone());
+                                            let links = self.bookmark_manager.get_links_for_topic(
+                                                &BookmarkItem::Topic(topic.clone()),
+                                            );
+                                            self.links_to_open
+                                                .extend(links.iter().map(|l| l.url.clone()));
                                             clicked_on_button = true;
+                                            modal.open();
                                         });
                                     });
                             });
@@ -431,7 +477,9 @@ impl eframe::App for StashApp {
                                                         );
 
                                                         custom_button(ui, label, None, || {
-                                                            open_urls(&[link.url.clone()]);
+                                                            self.links_to_open
+                                                                .push(link.url.clone());
+                                                            modal.open();
                                                         });
                                                     });
                                                     link_ui.response.context_menu(|ui| {
@@ -474,7 +522,6 @@ impl eframe::App for StashApp {
             let is_about_open = self.is_about_open.clone();
 
             let about_pos2 = self.initial_viewport_center;
-            let min_size = *MIN_SIZE;
 
             // * Show about viewport
             ctx.show_viewport_deferred(
@@ -506,7 +553,6 @@ impl eframe::App for StashApp {
             let tx = self.tx.clone();
 
             let add_topic_pos2 = self.initial_viewport_center;
-            let min_size = *MIN_SIZE;
 
             // * Show add topic viewport
             ctx.show_viewport_deferred(
