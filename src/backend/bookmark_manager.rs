@@ -66,6 +66,17 @@ impl BookmarkManager {
         self.save_bookmarks();
     }
 
+    pub fn edit_topic(&mut self, old_topic: BookmarkItem, new_topic: BookmarkItem) {
+        if !self.bookmarks.contains_key(&old_topic) {
+            return;
+        }
+
+        let bookmarks = self.bookmarks.clone();
+        let (idx, _, value) = bookmarks.get_full(&old_topic).expect("Failed to get topic");
+        self.remove_topic(old_topic);
+        self.bookmarks.shift_insert(idx, new_topic, value.to_vec());
+    }
+
     pub fn remove_topic(&mut self, topic: BookmarkItem) {
         self.bookmarks.shift_remove(&topic);
         self.save_bookmarks();
@@ -86,6 +97,17 @@ impl BookmarkManager {
             self.bookmarks.insert(topic.clone(), vec![]);
         } else {
             self.bookmarks.get_mut(&topic).unwrap().push(link);
+        }
+
+        self.save_bookmarks();
+    }
+
+    pub fn edit_link(&mut self, topic: BookmarkItem, old_link: BookmarkItem, new_link: BookmarkItem) {
+        if self.bookmarks.contains_key(&topic) {
+            let links = self.bookmarks.get_mut(&topic).unwrap();
+            if let Some(index) = links.iter().position(|l| l == &old_link) {
+                links[index] = new_link;
+            }
         }
 
         self.save_bookmarks();

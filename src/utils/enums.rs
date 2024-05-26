@@ -6,12 +6,12 @@ use crate::backend::models::{LinkModel, TopicModel};
 pub enum AppMessage {
     // Topic
     AddTopic(TopicModel),
-    EditTopic(TopicModel),
+    EditTopic(TopicModel, TopicModel),
     RemoveTopic(TopicModel),
 
     // Link
     AddLink(String, LinkModel),
-    EditLink(String, LinkModel),
+    EditLink(String, LinkModel, LinkModel),
     RemoveLink(String, LinkModel),
 
     // UI

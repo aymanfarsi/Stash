@@ -1,4 +1,4 @@
 pub mod about;
-pub mod add_link;
-pub mod add_topic;
+pub mod link_viewport;
+pub mod topic_viewport;
 pub mod components;

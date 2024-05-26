@@ -1,17 +1,14 @@
-- [ ] Stash configuration
-  - [ ] Load configuration
-  - [ ] Save configuration
 - [X] Bookmarks
   - [X] Load bookmarks
   - [X] Save bookmarks
   - [X] Sort bookmarks when loading
-- [ ] Topic
+- [X] Topic
   - [X] Add topic
   - [X] Topic UI
-  - [ ] Open all links with a topic
+  - [X] Open all links with a topic
   - [X] Context menu
     - [X] Add link
-    - [ ] Edit topic name
+    - [X] Edit topic name
     - [X] Delete topic
 - [X] Link
   - [X] Add link
@@ -20,3 +17,17 @@
   - [X] Context menu
     - [X] Edit title
     - [X] Delete link
+- [ ] Fetch metadata
+  - [ ] Fetch metadata for a link
+  - [ ] Display metadata
+- [ ] Open links
+  - [ ] Open browser
+- [ ] Search
+  - [ ] Search for a link
+  - [ ] Search for a topic
+- [ ] Settings
+  - [ ] Change theme
+  - [ ] Export
+    - [ ] Export bookmarks
+    - [ ] Import bookmarks
+  

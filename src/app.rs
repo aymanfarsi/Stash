@@ -15,8 +15,8 @@ use lazy_static::lazy_static;
 use crate::{
     backend::bookmark_manager::BookmarkManager,
     ui::{
-        about::AboutViewport, add_link::AddLinkViewport, add_topic::AddTopicViewport,
-        components::custom_button,
+        about::AboutViewport, components::custom_button, link_viewport::LinkViewport,
+        topic_viewport::TopicViewport,
     },
     utils::{
         backup_bookmarks, calc_btn_size_from_text,
@@ -27,9 +27,8 @@ use crate::{
 
 lazy_static! {
     static ref ABOUT_VIEWPORT: AboutViewport = AboutViewport::default();
-    static ref ADD_TOPIC_VIEWPORT: Mutex<AddTopicViewport> =
-        Mutex::new(AddTopicViewport::default());
-    static ref ADD_LINK_VIEWPORT: Mutex<AddLinkViewport> = Mutex::new(AddLinkViewport::default());
+    static ref ADD_TOPIC_VIEWPORT: Mutex<TopicViewport> = Mutex::new(TopicViewport::default());
+    static ref ADD_LINK_VIEWPORT: Mutex<LinkViewport> = Mutex::new(LinkViewport::default());
     static ref MIN_SIZE: [f32; 2] = [320.0, 240.0];
 }
 
@@ -80,29 +79,53 @@ impl StashApp {
     }
 
     fn open_add_topic_viewport(&self) {
-        let is_add_topic_open = self.is_add_topic_open.load(Ordering::Relaxed);
-        self.is_add_topic_open
-            .store(!is_add_topic_open, Ordering::Relaxed);
+        let mut viewport = ADD_TOPIC_VIEWPORT
+            .lock()
+            .expect("Unable to lock AddTopicViewport");
+        viewport.set_old_name("".to_owned());
+        viewport.set_new_name("".to_owned());
+        viewport.set_editing(false);
+
+        self.is_add_topic_open.store(true, Ordering::Relaxed);
+    }
+
+    fn open_edit_topic_viewport(&self, topic_name: String) {
+        let mut viewport = ADD_TOPIC_VIEWPORT
+            .lock()
+            .expect("Unable to lock AddTopicViewport");
+        viewport.set_old_name(topic_name.clone());
+        viewport.set_new_name(topic_name);
+        viewport.set_editing(true);
+
+        self.is_add_topic_open.store(true, Ordering::Relaxed);
     }
 
     fn open_add_link_viewport(&self, topic_name: String) {
-        ADD_LINK_VIEWPORT
+        let mut viewport = ADD_LINK_VIEWPORT
             .lock()
-            .expect("Unable to lock AddLinkViewport")
-            .set_topic_name(topic_name);
+            .expect("Unable to lock AddLinkViewport");
+        viewport.set_topic_name(topic_name);
+        viewport.set_old_title("".to_owned());
+        viewport.set_old_url("".to_owned());
+        viewport.set_new_title("".to_owned());
+        viewport.set_new_url("".to_owned());
+        viewport.set_is_editing(false);
 
         self.is_add_link_open.store(true, Ordering::Relaxed);
     }
 
-    fn open_edit_topic_viewport(&self, topic_name: String, title: String, url: String) {
+    fn open_edit_link_viewport(&self, topic_name: String, title: String, url: String) {
         let mut viewport = ADD_LINK_VIEWPORT
             .lock()
-            .expect("Unable to lock AddTopicViewport");
+            .expect("Unable to lock AddLinkViewport");
         viewport.set_topic_name(topic_name);
-        viewport.set_title(title);
-        viewport.set_url(url);
+        viewport.set_old_title(title.clone());
+        viewport.set_old_url(url.clone());
+        viewport.set_new_title(title);
+        viewport.set_new_url(url);
+        viewport.set_is_editing(true);
 
-        self.is_add_topic_open.store(true, Ordering::Relaxed);
+        self.is_add_link_open.store(true, Ordering::Relaxed);
     }
 }
 
@@ -130,18 +153,20 @@ impl eframe::App for StashApp {
             match msg {
                 // * Topics
                 AppMessage::AddTopic(topic) => {
-                    println!("Adding topic: {:?}", topic);
-
                     self.bookmark_manager.add_topic(BookmarkItem::Topic(topic));
                     self.expanded_topics.push(false);
+
                     ctx.request_repaint();
                 }
-                AppMessage::EditTopic(topic) => {
-                    println!("Editing topic: {:?}", topic);
+                AppMessage::EditTopic(old_topic, new_topic) => {
+                    self.bookmark_manager.edit_topic(
+                        BookmarkItem::Topic(old_topic.clone()),
+                        BookmarkItem::Topic(new_topic),
+                    );
+
+                    ctx.request_repaint();
                 }
                 AppMessage::RemoveTopic(topic) => {
-                    println!("Removing topic: {:?}", topic);
-
                     self.bookmark_manager
                         .remove_topic(BookmarkItem::Topic(topic.clone()));
 
@@ -158,8 +183,6 @@ impl eframe::App for StashApp {
 
                 // * Links
                 AppMessage::AddLink(name, link) => {
-                    println!("Adding link: {:?} to topic: {:?}", link, name);
-
                     let topic = self
                         .bookmark_manager
                         .get_topics()
@@ -170,14 +193,27 @@ impl eframe::App for StashApp {
 
                     self.bookmark_manager
                         .add_link(BookmarkItem::Topic(topic.clone()), BookmarkItem::Link(link));
+
                     ctx.request_repaint();
                 }
-                AppMessage::EditLink(name, link) => {
-                    println!("Editing link: {:?} in topic: {:?}", link, name);
+                AppMessage::EditLink(name, old_link, link) => {
+                    let topic = self
+                        .bookmark_manager
+                        .get_topics()
+                        .iter()
+                        .find(|t| t.name == name)
+                        .expect("Topic not found")
+                        .clone();
+
+                    self.bookmark_manager.edit_link(
+                        BookmarkItem::Topic(topic.clone()),
+                        BookmarkItem::Link(old_link),
+                        BookmarkItem::Link(link),
+                    );
+
+                    ctx.request_repaint();
                 }
                 AppMessage::RemoveLink(name, link) => {
-                    println!("Removing link: {:?} from topic: {:?}", link, name);
-
                     let topic = self
                         .bookmark_manager
                         .get_topics()
@@ -188,6 +224,7 @@ impl eframe::App for StashApp {
 
                     self.bookmark_manager
                         .remove_link(BookmarkItem::Topic(topic.clone()), BookmarkItem::Link(link));
+
                     ctx.request_repaint();
                 }
 
@@ -195,6 +232,7 @@ impl eframe::App for StashApp {
                 AppMessage::ToggleCollapsed(index) => {
                     let is_expanded = self.expanded_topics.get(index).copied().unwrap_or(false);
                     self.expanded_topics[index] = !is_expanded;
+
                     ctx.request_repaint();
                 }
 
@@ -214,6 +252,7 @@ impl eframe::App for StashApp {
                         _ => WindowLevel::Normal,
                     };
                     ctx.send_viewport_cmd(ViewportCommand::WindowLevel(self.window_level));
+
                     ctx.request_repaint();
                 }
             }
@@ -344,9 +383,7 @@ impl eframe::App for StashApp {
                                     ui.close_menu();
                                 }
                                 if ui.button("Edit topic name").clicked() {
-                                    self.tx
-                                        .send(AppMessage::EditTopic(topic.clone()))
-                                        .expect("Unable to send");
+                                    self.open_edit_topic_viewport(topic.name.clone());
                                     ui.close_menu();
                                 }
                                 if ui.button("Remove Topic").clicked() {
@@ -399,7 +436,7 @@ impl eframe::App for StashApp {
                                                     });
                                                     link_ui.response.context_menu(|ui| {
                                                         if ui.button("Edit link").clicked() {
-                                                            self.open_edit_topic_viewport(
+                                                            self.open_edit_link_viewport(
                                                                 topic.name.clone(),
                                                                 link.title.clone(),
                                                                 link.url.clone(),

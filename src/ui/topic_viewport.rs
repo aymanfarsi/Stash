@@ -11,11 +11,26 @@ use crate::{backend::models::TopicModel, utils::enums::AppMessage};
 use super::components::custom_button;
 
 #[derive(Default, Debug, Clone, PartialEq)]
-pub struct AddTopicViewport {
-    name: String,
+pub struct TopicViewport {
+    old_name: String,
+    new_name: String,
+    
+    is_editing: bool,
 }
 
-impl AddTopicViewport {
+impl TopicViewport {
+    pub fn set_old_name(&mut self, name: String) {
+        self.old_name = name;
+    }
+
+    pub fn set_new_name(&mut self, name: String) {
+        self.new_name = name;
+    }
+
+    pub fn set_editing(&mut self, is_editing: bool) {
+        self.is_editing = is_editing;
+    }
+
     pub fn ui(&mut self, ctx: &egui::Context, is_open: &Arc<AtomicBool>, tx: &Sender<AppMessage>) {
         CentralPanel::default().show(ctx, |ui| {
             ui.add_space(9.);
@@ -39,7 +54,7 @@ impl AddTopicViewport {
                 .show(ui, |ui| {
                     ui.label("Name:");
 
-                    ui.text_edit_singleline(&mut self.name);
+                    ui.text_edit_singleline(&mut self.new_name);
                     if ui.input(|i| i.key_pressed(Key::Enter)) {
                         self.send_topic(ctx, tx);
                     }
@@ -57,7 +72,8 @@ impl AddTopicViewport {
 
                 ui.add_space(spacing_around);
 
-                custom_button(ui, "Add Topic", Some(button_width), || {
+                let text = if self.is_editing { "Update" } else { "Add" };
+                custom_button(ui, text, Some(button_width), || {
                     self.send_topic(ctx, tx);
                 });
 
@@ -96,9 +112,15 @@ impl AddTopicViewport {
     }
 
     fn send_topic(&mut self, ctx: &egui::Context, tx: &Sender<AppMessage>) {
-        if !self.name.is_empty() {
-            let topic = TopicModel::new(self.name.clone());
-            let res = tx.send(AppMessage::AddTopic(topic));
+        if !self.new_name.is_empty() {
+            let new_topic = TopicModel::new(self.new_name.clone());
+            let msg = if self.is_editing {
+                let old_topic = TopicModel::new(self.old_name.clone());
+                AppMessage::EditTopic(old_topic, new_topic)
+            } else {
+                AppMessage::AddTopic(new_topic)
+            };
+            let res = tx.send(msg);
             match res {
                 Ok(_) => {
                     self.exit_viewport(ctx);
@@ -111,7 +133,8 @@ impl AddTopicViewport {
     }
 
     fn exit_viewport(&mut self, ctx: &egui::Context) {
-        self.name.clear();
+        self.new_name.clear();
+        self.is_editing = false;
         ctx.send_viewport_cmd(ViewportCommand::Close);
     }
 }
