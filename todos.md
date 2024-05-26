@@ -20,8 +20,6 @@
 - [ ] Fetch metadata
   - [ ] Fetch metadata for a link
   - [ ] Display metadata
-- [ ] Open links
-  - [ ] Open browser
 - [ ] Search
   - [ ] Search for a link
   - [ ] Search for a topic

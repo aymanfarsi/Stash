@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 
 use crate::backend::models::{LinkModel, TopicModel};
@@ -32,5 +34,5 @@ pub enum BookmarkItem {
 #[derive(Debug, Clone, PartialEq)]
 pub enum OpenLocationType {
     Documents,
-    Custom(String),
+    Custom(PathBuf),
 }
