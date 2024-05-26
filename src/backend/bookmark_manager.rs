@@ -27,6 +27,8 @@ impl Default for BookmarkManager {
         if let Ok(data) = fs::read_to_string(format!("{}/bookmarks.json", path.to_str().unwrap())) {
             let json: HashMap<String, Vec<LinkModel>> =
                 serde_json::from_str(&data).expect("Failed to deserialize bookmarks");
+            let mut json = json.into_iter().collect::<Vec<(String, Vec<LinkModel>)>>();
+            json.sort_by(|a, b| a.0.cmp(&b.0));
 
             for (topic, links) in json {
                 let mut split = topic.split('_').collect::<Vec<&str>>();

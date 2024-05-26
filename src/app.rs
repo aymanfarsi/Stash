@@ -5,19 +5,23 @@ use std::sync::{
 
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use egui::{
-    collapsing_header, CentralPanel, CursorIcon, FontDefinitions, Frame, Margin, Pos2, Rect,
-    RichText, TopBottomPanel, ViewportBuilder, ViewportClass, ViewportCommand, ViewportId,
-    WindowLevel,
+    collapsing_header, epaint::Shadow, scroll_area::ScrollBarVisibility, vec2, CentralPanel,
+    CursorIcon, FontDefinitions, Frame, Margin, Pos2, Rect, RichText, Rounding, ScrollArea,
+    TopBottomPanel, ViewportBuilder, ViewportClass, ViewportCommand, ViewportId, WindowLevel,
 };
 use egui_phosphor::regular;
 use lazy_static::lazy_static;
 
 use crate::{
     backend::bookmark_manager::BookmarkManager,
-    ui::{about::AboutViewport, add_topic::AddTopicViewport, components::custom_button},
+    ui::{
+        about::AboutViewport, add_link::AddLinkViewport, add_topic::AddTopicViewport,
+        components::custom_button,
+    },
     utils::{
-        calc_btn_size_from_text,
-        enums::{AppMessage, BookmarkItem},
+        backup_bookmarks, calc_btn_size_from_text,
+        enums::{AppMessage, BookmarkItem, OpenLocationType},
+        open_file_location, open_urls,
     },
 };
 
@@ -25,6 +29,7 @@ lazy_static! {
     static ref ABOUT_VIEWPORT: AboutViewport = AboutViewport::default();
     static ref ADD_TOPIC_VIEWPORT: Mutex<AddTopicViewport> =
         Mutex::new(AddTopicViewport::default());
+    static ref ADD_LINK_VIEWPORT: Mutex<AddLinkViewport> = Mutex::new(AddLinkViewport::default());
     static ref MIN_SIZE: [f32; 2] = [320.0, 240.0];
 }
 
@@ -36,6 +41,7 @@ pub struct StashApp {
 
     is_about_open: Arc<AtomicBool>,
     is_add_topic_open: Arc<AtomicBool>,
+    is_add_link_open: Arc<AtomicBool>,
 
     bookmark_manager: BookmarkManager,
     expanded_topics: Vec<bool>,
@@ -63,6 +69,7 @@ impl StashApp {
 
             is_about_open: Arc::new(AtomicBool::new(false)),
             is_add_topic_open: Arc::new(AtomicBool::new(false)),
+            is_add_link_open: Arc::new(AtomicBool::new(false)),
 
             bookmark_manager,
             expanded_topics,
@@ -70,6 +77,32 @@ impl StashApp {
             tx,
             rx,
         }
+    }
+
+    fn open_add_topic_viewport(&self) {
+        let is_add_topic_open = self.is_add_topic_open.load(Ordering::Relaxed);
+        self.is_add_topic_open
+            .store(!is_add_topic_open, Ordering::Relaxed);
+    }
+
+    fn open_add_link_viewport(&self, topic_name: String) {
+        ADD_LINK_VIEWPORT
+            .lock()
+            .expect("Unable to lock AddLinkViewport")
+            .set_topic_name(topic_name);
+
+        self.is_add_link_open.store(true, Ordering::Relaxed);
+    }
+
+    fn open_edit_topic_viewport(&self, topic_name: String, title: String, url: String) {
+        let mut viewport = ADD_LINK_VIEWPORT
+            .lock()
+            .expect("Unable to lock AddTopicViewport");
+        viewport.set_topic_name(topic_name);
+        viewport.set_title(title);
+        viewport.set_url(url);
+
+        self.is_add_topic_open.store(true, Ordering::Relaxed);
     }
 }
 
@@ -124,21 +157,37 @@ impl eframe::App for StashApp {
                 }
 
                 // * Links
-                AppMessage::AddLink(topic, link) => {
-                    println!("Adding link: {:?} to topic: {:?}", link, topic.name);
+                AppMessage::AddLink(name, link) => {
+                    println!("Adding link: {:?} to topic: {:?}", link, name);
+
+                    let topic = self
+                        .bookmark_manager
+                        .get_topics()
+                        .iter()
+                        .find(|t| t.name == name)
+                        .expect("Topic not found")
+                        .clone();
 
                     self.bookmark_manager
-                        .add_link(BookmarkItem::Topic(topic), BookmarkItem::Link(link));
+                        .add_link(BookmarkItem::Topic(topic.clone()), BookmarkItem::Link(link));
                     ctx.request_repaint();
                 }
-                AppMessage::EditLink(topic, link) => {
-                    println!("Editing link: {:?} in topic: {:?}", link, topic.name);
+                AppMessage::EditLink(name, link) => {
+                    println!("Editing link: {:?} in topic: {:?}", link, name);
                 }
-                AppMessage::RemoveLink(topic, link) => {
-                    println!("Removing link: {:?} from topic: {:?}", link, topic.name);
+                AppMessage::RemoveLink(name, link) => {
+                    println!("Removing link: {:?} from topic: {:?}", link, name);
+
+                    let topic = self
+                        .bookmark_manager
+                        .get_topics()
+                        .iter()
+                        .find(|t| t.name == name)
+                        .expect("Topic not found")
+                        .clone();
 
                     self.bookmark_manager
-                        .remove_link(BookmarkItem::Topic(topic), BookmarkItem::Link(link));
+                        .remove_link(BookmarkItem::Topic(topic.clone()), BookmarkItem::Link(link));
                     ctx.request_repaint();
                 }
 
@@ -183,6 +232,14 @@ impl eframe::App for StashApp {
                         ui.output_mut(|o| o.cursor_icon = CursorIcon::Default);
                     }
                     info.context_menu(|ui| {
+                        if ui.button("Open location").clicked() {
+                            open_file_location(OpenLocationType::Documents);
+                            ui.close_menu();
+                        }
+                        if ui.button("Backup bookmarks").clicked() {
+                            backup_bookmarks();
+                            ui.close_menu();
+                        }
                         if ui.button("Toggle AlwaysOnTop").clicked() {
                             self.tx
                                 .send(AppMessage::ToggleAlwaysOnTop)
@@ -202,64 +259,88 @@ impl eframe::App for StashApp {
                     ui.add_space(available_width - calc_btn_size_from_text(label));
 
                     custom_button(ui, label, None, || {
-                        let is_add_topic_open = self.is_add_topic_open.load(Ordering::Relaxed);
-                        self.is_add_topic_open
-                            .store(!is_add_topic_open, Ordering::Relaxed);
+                        self.open_add_topic_viewport();
                     });
                 });
             });
 
         // * Main UI
         CentralPanel::default().show(ctx, |ui| {
-            for (idx, topic) in self.bookmark_manager.get_topics().into_iter().enumerate() {
-                let id = ui.make_persistent_id(format!(
-                    "topic_{}_{}",
-                    topic.name.replace(' ', "_"),
-                    idx
-                ));
-                let is_expanded = self.expanded_topics.get(idx).copied().unwrap_or(false);
+            ScrollArea::vertical()
+                .scroll_bar_visibility(ScrollBarVisibility::VisibleWhenNeeded)
+                .show(ui, |ui| {
+                    let topics_list = self.bookmark_manager.get_topics();
+                    for (idx, topic) in topics_list.into_iter().enumerate() {
+                        let id_str = format!("topic_{}_{}", topic.name.replace(' ', "_"), idx);
+                        let id = ui.make_persistent_id(id_str.clone());
+                        let is_expanded = self.expanded_topics.get(idx).copied().unwrap_or(false);
 
-                let mut state = collapsing_header::CollapsingState::load_with_default_open(
-                    ui.ctx(),
-                    id,
-                    is_expanded,
-                );
+                        ui.push_id(id_str.clone(), |ui| {
+                            let mut state =
+                                collapsing_header::CollapsingState::load_with_default_open(
+                                    ui.ctx(),
+                                    id,
+                                    is_expanded,
+                                );
 
-                state.set_open(is_expanded);
+                            state.set_open(is_expanded);
+                            let mut clicked_on_button = false;
 
-                // ? Topic header
-                let header_res = ui.horizontal(|ui| {
-                    let icon = if !is_expanded {
-                        regular::CARET_RIGHT
-                    } else {
-                        regular::CARET_DOUBLE_DOWN
-                    };
+                            // ? Topic header
+                            let header_res = ui.horizontal(|ui| {
+                                ui.allocate_ui(vec2(50., 50.), |ui| {
+                                    ui.horizontal_centered(|ui| {
+                                        let resp = ui.label(
+                                            RichText::new(if !is_expanded {
+                                                regular::CARET_RIGHT
+                                            } else {
+                                                regular::CARET_DOUBLE_DOWN
+                                            })
+                                            .size(12.),
+                                        );
+                                        if resp.hovered() {
+                                            ui.output_mut(|o| o.cursor_icon = CursorIcon::Default);
+                                        }
+                                    });
+                                });
 
-                    let resp = ui.label(RichText::new(icon).size(12.));
-                    if resp.clicked() {
-                        self.tx
-                            .send(AppMessage::ToggleCollapsed(idx))
-                            .expect("Unable to send");
-                    }
-                    if resp.hovered() {
-                        ui.output_mut(|o| o.cursor_icon = CursorIcon::Default);
-                    }
+                                Frame::group(ui.style())
+                                    .inner_margin(Margin::same(9.))
+                                    .rounding(Rounding::same(9.))
+                                    .show(ui, |ui| {
+                                        let topic_label =
+                                            ui.label(RichText::new(topic.name.clone()).size(20.));
+                                        if topic_label.hovered() {
+                                            ui.output_mut(|o| o.cursor_icon = CursorIcon::Default);
+                                        }
 
-                    Frame::group(ui.style())
-                        .inner_margin(Margin::same(9.))
-                        .show(ui, |ui| {
-                            let topic_label = ui.label(RichText::new(topic.name.clone()).size(20.));
-                            if topic_label.clicked() {
+                                        let available_width = ui.available_width();
+                                        let label = "Add Link";
+
+                                        ui.add_space(
+                                            available_width - calc_btn_size_from_text(label),
+                                        );
+
+                                        custom_button(ui, label, None, || {
+                                            self.open_add_link_viewport(topic.name.clone());
+                                            clicked_on_button = true;
+                                        });
+                                    });
+                            });
+
+                            let header_response = header_res.response.clone();
+                            if header_response
+                                .rect
+                                .contains(ui.input(|i| i.pointer.hover_pos().unwrap_or(Pos2::ZERO)))
+                                && ui.input(|i| i.pointer.primary_clicked() && !clicked_on_button)
+                            {
                                 self.tx
                                     .send(AppMessage::ToggleCollapsed(idx))
                                     .expect("Unable to send");
                             }
-                            if topic_label.hovered() {
-                                ui.output_mut(|o| o.cursor_icon = CursorIcon::Default);
-                            }
-                            topic_label.context_menu(|ui| {
+                            header_response.context_menu(|ui| {
                                 if ui.button("Add Link").clicked() {
-                                    println!("Add link to topic: {:?}", topic);
+                                    self.open_add_link_viewport(topic.name.clone());
                                     ui.close_menu();
                                 }
                                 if ui.button("Edit topic name").clicked() {
@@ -275,25 +356,80 @@ impl eframe::App for StashApp {
                                     ui.close_menu();
                                 }
                             });
-                        });
-                });
 
-                state.show_body_indented(&header_res.response, ui, |ui| {
-                    // ? Links UI
-                    let links = self
-                        .bookmark_manager
-                        .get_links_for_topic(&BookmarkItem::Topic(topic));
-                    if links.is_empty() {
-                        ui.vertical_centered(|ui| {
-                            ui.label("No links!");
+                            state.show_body_unindented(ui, |ui| {
+                                ui.add_space(5.);
+
+                                // ? Links UI
+                                let links = self
+                                    .bookmark_manager
+                                    .get_links_for_topic(&BookmarkItem::Topic(topic.clone()));
+                                if links.is_empty() {
+                                    ui.vertical_centered(|ui| {
+                                        ui.label("No links!");
+                                    });
+                                } else {
+                                    for (idx, link) in links.iter().enumerate() {
+                                        Frame::group(ui.style())
+                                            .shadow(Shadow::default())
+                                            .rounding(Rounding::same(9.))
+                                            .inner_margin(Margin::same(9.))
+                                            .show(ui, |ui| {
+                                                let id_str = format!(
+                                                    "{}_{}_{}",
+                                                    topic.name.replace(' ', "_"),
+                                                    link.title.replace(' ', "_"),
+                                                    idx
+                                                );
+                                                ui.push_id(id_str, |ui| {
+                                                    let link_ui = ui.horizontal(|ui| {
+                                                        ui.label(link.title.clone());
+
+                                                        let available_width = ui.available_width();
+                                                        let label = "Open";
+
+                                                        ui.add_space(
+                                                            available_width
+                                                                - calc_btn_size_from_text(label),
+                                                        );
+
+                                                        custom_button(ui, label, None, || {
+                                                            open_urls(&[link.url.clone()]);
+                                                        });
+                                                    });
+                                                    link_ui.response.context_menu(|ui| {
+                                                        if ui.button("Edit link").clicked() {
+                                                            self.open_edit_topic_viewport(
+                                                                topic.name.clone(),
+                                                                link.title.clone(),
+                                                                link.url.clone(),
+                                                            );
+                                                            ui.close_menu();
+                                                        }
+                                                        if ui.button("Remove link").clicked() {
+                                                            self.tx
+                                                                .send(AppMessage::RemoveLink(
+                                                                    topic.name.clone(),
+                                                                    link.clone(),
+                                                                ))
+                                                                .expect("Unable to send");
+                                                            ui.close_menu();
+                                                        }
+                                                    });
+                                                });
+                                            });
+
+                                        if idx < links.len() - 1 {
+                                            ui.add_space(5.);
+                                        }
+                                    }
+                                }
+                            });
                         });
-                    } else {
-                        for link in links {
-                            ui.label(link.title);
-                        }
+
+                        ui.add_space(5.);
                     }
                 });
-            }
         });
 
         // * About viewport
@@ -358,6 +494,44 @@ impl eframe::App for StashApp {
                         .lock()
                         .expect("Unable to lock AddTopicViewport")
                         .ui(ctx, &is_add_topic_open, &tx);
+                },
+            );
+        }
+
+        // * Add link viewport
+        if self.is_add_link_open.load(Ordering::Relaxed) {
+            let is_add_link_open = self.is_add_link_open.clone();
+            let tx = self.tx.clone();
+
+            let add_link_pos2 = self.initial_viewport_center;
+            let min_size = *MIN_SIZE;
+            let width = min_size[0];
+            let height = min_size[1] + 50.;
+            let min_size = [width, height];
+
+            // * Show add link viewport
+            ctx.show_viewport_deferred(
+                ViewportId::from_hash_of("add_link_viewport"),
+                ViewportBuilder::default()
+                    .with_title("Add Link")
+                    .with_position(add_link_pos2)
+                    .with_inner_size(min_size)
+                    .with_resizable(false)
+                    .with_maximize_button(false)
+                    .with_minimize_button(false)
+                    .with_window_level(WindowLevel::Normal)
+                    .with_min_inner_size(min_size),
+                move |ctx, class| {
+                    assert!(
+                        class == ViewportClass::Deferred,
+                        "This egui backend doesn't support multiple viewports"
+                    );
+
+                    // * Add link UI
+                    ADD_LINK_VIEWPORT
+                        .lock()
+                        .expect("Unable to lock AddLinkViewport")
+                        .ui(ctx, &is_add_link_open, &tx);
                 },
             );
         }

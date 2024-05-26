@@ -4,18 +4,19 @@
 - [X] Bookmarks
   - [X] Load bookmarks
   - [X] Save bookmarks
+  - [X] Sort bookmarks when loading
 - [ ] Topic
-  - [ ] Add topic
-  - [ ] Topic UI
+  - [X] Add topic
+  - [X] Topic UI
   - [ ] Open all links with a topic
-  - [ ] Context menu
-    - [ ] Add link
+  - [X] Context menu
+    - [X] Add link
     - [ ] Edit topic name
-    - [ ] Delete topic
-- [ ] Link
-  - [ ] Add link
-  - [ ] Link UI
-  - [ ] Open specific link
-  - [ ] Context menu
-    - [ ] Edit title
-    - [ ] Delete link
+    - [X] Delete topic
+- [X] Link
+  - [X] Add link
+  - [X] Link UI
+  - [X] Open specific link
+  - [X] Context menu
+    - [X] Edit title
+    - [X] Delete link

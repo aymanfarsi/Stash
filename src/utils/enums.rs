@@ -10,9 +10,9 @@ pub enum AppMessage {
     RemoveTopic(TopicModel),
 
     // Link
-    AddLink(TopicModel, LinkModel),
-    EditLink(TopicModel, LinkModel),
-    RemoveLink(TopicModel, LinkModel),
+    AddLink(String, LinkModel),
+    EditLink(String, LinkModel),
+    RemoveLink(String, LinkModel),
 
     // UI
     ToggleCollapsed(usize),
@@ -29,4 +29,8 @@ pub enum BookmarkItem {
     Link(LinkModel),
 }
 
-impl BookmarkItem {}
+#[derive(Debug, Clone, PartialEq)]
+pub enum OpenLocationType {
+    Documents,
+    Custom(String),
+}
