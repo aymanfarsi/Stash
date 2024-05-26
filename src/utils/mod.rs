@@ -17,7 +17,9 @@ pub fn calc_btn_size_from_text(text: &str) -> f32 {
 
 pub fn open_urls(urls: &[String]) {
     for url in urls {
-        println!("Opening link: {}", url);
+        if let Err(e) = webbrowser::open(url) {
+            eprintln!("Failed to open URL: {} with error: {:?}", url, e);
+        }
     }
 }
 

@@ -9,11 +9,12 @@ use crate::utils::enums::BookmarkItem;
 #[derive(Debug, Clone, PartialEq)]
 pub struct BookmarkManager {
     path: String,
+    pub filename: String,
     bookmarks: IndexMap<BookmarkItem, Vec<BookmarkItem>>,
 }
 
-impl Default for BookmarkManager {
-    fn default() -> Self {
+impl BookmarkManager {
+    pub fn new(is_debug: bool) -> Self {
         let dirs = UserDirs::new().expect("Failed to get user directories");
         let documents = dirs
             .document_dir()
@@ -23,8 +24,14 @@ impl Default for BookmarkManager {
             fs::create_dir_all(&path).expect("Failed to create stash directory");
         }
 
+        let filename = if is_debug {
+            "bookmarks_debug.json"
+        } else {
+            "bookmarks.json"
+        };
+
         let mut bookmarks = IndexMap::new();
-        if let Ok(data) = fs::read_to_string(format!("{}/bookmarks.json", path.to_str().unwrap())) {
+        if let Ok(data) = fs::read_to_string(format!("{}/{}", path.to_str().unwrap(), filename)) {
             let json: HashMap<String, Vec<LinkModel>> =
                 serde_json::from_str(&data).expect("Failed to deserialize bookmarks");
             let mut json = json.into_iter().collect::<Vec<(String, Vec<LinkModel>)>>();
@@ -51,12 +58,11 @@ impl Default for BookmarkManager {
                 .to_str()
                 .expect("Failed to convert path to string")
                 .to_string(),
+            filename: filename.to_string(),
             bookmarks,
         }
     }
-}
 
-impl BookmarkManager {
     pub fn add_topic(&mut self, topic: BookmarkItem) {
         if self.bookmarks.contains_key(&topic) {
             return;
@@ -102,7 +108,12 @@ impl BookmarkManager {
         self.save_bookmarks();
     }
 
-    pub fn edit_link(&mut self, topic: BookmarkItem, old_link: BookmarkItem, new_link: BookmarkItem) {
+    pub fn edit_link(
+        &mut self,
+        topic: BookmarkItem,
+        old_link: BookmarkItem,
+        new_link: BookmarkItem,
+    ) {
         if self.bookmarks.contains_key(&topic) {
             let links = self.bookmarks.get_mut(&topic).unwrap();
             if let Some(index) = links.iter().position(|l| l == &old_link) {
@@ -161,7 +172,7 @@ impl BookmarkManager {
         }
 
         let data = serde_json::to_string(&data).expect("Failed to serialize bookmarks");
-        let path = format!("{}/bookmarks.json", self.path);
+        let path = format!("{}/{}", self.path, self.filename);
         fs::write(path, data).expect("Failed to write bookmarks to file");
     }
 }

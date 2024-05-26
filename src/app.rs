@@ -35,6 +35,7 @@ lazy_static! {
 
 #[derive(Debug)]
 pub struct StashApp {
+    is_debug: bool,
     is_first_run: bool,
     initial_viewport_center: Pos2,
     window_level: WindowLevel,
@@ -56,7 +57,8 @@ impl StashApp {
     pub fn new() -> Self {
         let (tx, rx) = unbounded::<AppMessage>();
 
-        let bookmark_manager = BookmarkManager::default();
+        let is_debug = cfg!(debug_assertions);
+        let bookmark_manager = BookmarkManager::new(is_debug);
         let expanded_topics = bookmark_manager
             .get_topics()
             .iter()
@@ -64,6 +66,7 @@ impl StashApp {
             .collect();
 
         Self {
+            is_debug,
             is_first_run: true,
             initial_viewport_center: Pos2::ZERO,
             window_level: WindowLevel::Normal,
@@ -332,6 +335,13 @@ impl eframe::App for StashApp {
                             ui.close_menu();
                         }
                     });
+
+                    if self.is_debug {
+                        ui.label(format!(
+                            "Debugging using {:?}",
+                            self.bookmark_manager.filename.replace(".json", "")
+                        ));
+                    }
 
                     let available_width = ui.available_width();
                     let label = "Add Topic";

@@ -822,7 +822,7 @@ dependencies = [
  "raw-window-handle 0.6.2",
  "smithay-clipboard",
  "web-time",
- "webbrowser",
+ "webbrowser 0.8.15",
  "winit",
 ]
 
@@ -2865,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "stash"
-version = "0.0.5"
+version = "0.1.0"
 dependencies = [
  "chrono",
  "crossbeam",
@@ -2882,6 +2882,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tray-icon",
+ "webbrowser 1.0.1",
  "winapi",
  "winres",
 ]
@@ -3496,6 +3497,24 @@ dependencies = [
  "ndk-context",
  "objc",
  "raw-window-handle 0.5.2",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "webbrowser"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "425ba64c1e13b1c6e8c5d2541c8fac10022ca584f33da781db01b5756aef1f4e"
+dependencies = [
+ "block2 0.5.0",
+ "core-foundation",
+ "home",
+ "jni",
+ "log",
+ "ndk-context",
+ "objc2 0.5.1",
+ "objc2-foundation",
  "url",
  "web-sys",
 ]

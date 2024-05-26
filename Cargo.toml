@@ -1,6 +1,6 @@
 [package]
 name = "stash"
-version = "0.0.5"
+version = "0.1.0"
 edition = "2021"
 description = "A new way to manage your bookmarks!"
 
@@ -25,9 +25,7 @@ image = { version = "0.25.1", features = ["png"] }
 serde = { version = "1.0.202", features = ["derive"] }
 serde_json = { version = "1.0.117" }
 tray-icon = { version = "0.14.0" }
-tokio = { version = "1.33.0", features = [
-    "rt-multi-thread",
-] }
+tokio = { version = "1.33.0", features = ["rt-multi-thread"] }
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 lazy_static = "1.4.0"
 egui-phosphor = "0.5.0"
@@ -35,6 +33,7 @@ indexmap = { version = "2.2.6", features = ["rayon"] }
 directories = "5.0.1"
 chrono = "0.4.38"
 egui-modal = "0.3.6"
+webbrowser = { version = "1.0.1", features = ["hardened", "disable-wsl"] }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.9", features = ["winbase"] }
