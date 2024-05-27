@@ -17,15 +17,18 @@
   - [X] Context menu
     - [X] Edit title
     - [X] Delete link
+- [ ] Rearrange
+  - [ ] Rearrange topics
+  - [ ] Rearrange links
 - [ ] Fetch metadata
   - [ ] Fetch metadata for a link
   - [ ] Display metadata
 - [ ] Search
   - [ ] Search for a link
   - [ ] Search for a topic
-- [ ] Settings
-  - [ ] Change theme
-  - [ ] Export
-    - [ ] Export bookmarks
-    - [ ] Import bookmarks
+- [X] Settings
+  - [X] Change theme
+  - [X] Export
+    - [X] Export bookmarks
+    - [X] Import bookmarks
   

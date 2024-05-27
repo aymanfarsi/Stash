@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use directories::UserDirs;
 use indexmap::IndexMap;
@@ -69,7 +69,7 @@ impl BookmarkManager {
         }
 
         self.bookmarks.insert(topic, vec![]);
-        self.save_bookmarks();
+        self.save_bookmarks(None);
     }
 
     pub fn edit_topic(&mut self, old_topic: BookmarkItem, new_topic: BookmarkItem) {
@@ -85,7 +85,7 @@ impl BookmarkManager {
 
     pub fn remove_topic(&mut self, topic: BookmarkItem) {
         self.bookmarks.shift_remove(&topic);
-        self.save_bookmarks();
+        self.save_bookmarks(None);
     }
 
     pub fn get_topics(&self) -> Vec<TopicModel> {
@@ -105,7 +105,7 @@ impl BookmarkManager {
             self.bookmarks.get_mut(&topic).unwrap().push(link);
         }
 
-        self.save_bookmarks();
+        self.save_bookmarks(None);
     }
 
     pub fn edit_link(
@@ -121,7 +121,7 @@ impl BookmarkManager {
             }
         }
 
-        self.save_bookmarks();
+        self.save_bookmarks(None);
     }
 
     pub fn remove_link(&mut self, topic: BookmarkItem, link: BookmarkItem) {
@@ -132,7 +132,7 @@ impl BookmarkManager {
             }
         }
 
-        self.save_bookmarks();
+        self.save_bookmarks(None);
     }
 
     pub fn get_links_for_topic(&self, topic: &BookmarkItem) -> Vec<LinkModel> {
@@ -150,7 +150,7 @@ impl BookmarkManager {
             .unwrap_or_default()
     }
 
-    pub fn save_bookmarks(&self) {
+    pub fn save_bookmarks(&self, path: Option<PathBuf>) {
         let mut data: HashMap<String, Vec<LinkModel>> = HashMap::new();
         let mut count = 0;
         for (topic, links) in &self.bookmarks {
@@ -172,7 +172,38 @@ impl BookmarkManager {
         }
 
         let data = serde_json::to_string(&data).expect("Failed to serialize bookmarks");
-        let path = format!("{}/{}", self.path, self.filename);
+        let path =
+            path.unwrap_or_else(|| PathBuf::from(format!("{}/{}", self.path, self.filename)));
         fs::write(path, data).expect("Failed to write bookmarks to file");
+    }
+
+    pub fn export_bookmarks(&self, path: &str) {
+        self.save_bookmarks(Some(PathBuf::from(path)));
+    }
+
+    pub fn import_bookmarks(&mut self, path: &str) {
+        if let Ok(data) = fs::read_to_string(path) {
+            let json: HashMap<String, Vec<LinkModel>> =
+                serde_json::from_str(&data).expect("Failed to deserialize bookmarks");
+            let mut json = json.into_iter().collect::<Vec<(String, Vec<LinkModel>)>>();
+            json.sort_by(|a, b| a.0.cmp(&b.0));
+
+            for (topic, links) in json {
+                let mut split = topic.split('_').collect::<Vec<&str>>();
+                split.remove(0);
+                let name = if split.len() > 1 {
+                    split.join("_")
+                } else {
+                    split[0].to_string()
+                };
+
+                self.bookmarks.insert(
+                    BookmarkItem::Topic(TopicModel { name }),
+                    links.into_iter().map(BookmarkItem::Link).collect(),
+                );
+            }
+
+            self.save_bookmarks(None);
+        }
     }
 }
