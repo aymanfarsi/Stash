@@ -88,6 +88,15 @@ impl BookmarkManager {
         self.save_bookmarks(None);
     }
 
+    pub fn reorder_topics(&mut self, old_index: usize, new_index: usize) {
+        let topic = self.bookmarks.get_index(old_index).unwrap().0.clone();
+        let links = self.bookmarks.get_index(old_index).unwrap().1.clone();
+        self.bookmarks.shift_remove_index(old_index);
+        self.bookmarks.shift_insert(new_index, topic, links);
+        
+        self.save_bookmarks(None);
+    }
+
     pub fn get_topics(&self) -> Vec<TopicModel> {
         self.bookmarks
             .keys()
@@ -130,6 +139,16 @@ impl BookmarkManager {
             if let Some(index) = links.iter().position(|l| l == &link) {
                 links.remove(index);
             }
+        }
+
+        self.save_bookmarks(None);
+    }
+
+    pub fn reorder_links(&mut self, topic: BookmarkItem, old_index: usize, new_index: usize) {
+        if self.bookmarks.contains_key(&topic) {
+            let links = self.bookmarks.get_mut(&topic).unwrap();
+            let link = links.remove(old_index);
+            links.insert(new_index, link);
         }
 
         self.save_bookmarks(None);
