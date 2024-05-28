@@ -84,16 +84,26 @@ pub fn open_file_location(location: OpenLocationType) {
 
     #[cfg(target_os = "linux")]
     {
-        Command::new("xdg-open")
-            .arg(match location {
-                OpenLocationType::Documents => document_dir
-                    .to_str()
-                    .expect("Failed to convert path to string")
-                    .to_string(),
+        let is_selected_file = match location {
+            OpenLocationType::Documents => false,
+            OpenLocationType::Custom(ref file_path) => fs::metadata(file_path)
+                .expect("Failed to get metadata for file")
+                .is_file(),
+        };
+        let mut cmd = Command::new("xdg-open");
+        if is_selected_file {
+            cmd.arg("--select");
+        }
+        cmd.arg(
+            match location {
+                OpenLocationType::Documents => document_dir,
                 OpenLocationType::Custom(file_path) => file_path,
-            })
-            .spawn()
-            .expect("Failed to open file location");
+            }
+            .to_str()
+            .expect("Failed to convert path to string"),
+        )
+        .spawn()
+        .expect("Failed to open file location");
     }
 
     #[cfg(target_os = "macos")]
