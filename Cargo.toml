@@ -24,7 +24,7 @@ egui_extras = { version = "0.27.2", features = ["all_loaders"] }
 image = { version = "0.25.1", features = ["png"] }
 serde = { version = "1.0.202", features = ["derive"] }
 serde_json = { version = "1.0.117" }
-tray-icon = { version = "0.14.0" }
+# tray-icon = { version = "0.14.0" }
 tokio = { version = "1.33.0", features = ["rt-multi-thread"] }
 crossbeam = { version = "0.8.4", features = ["crossbeam-channel"] }
 lazy_static = "1.4.0"
