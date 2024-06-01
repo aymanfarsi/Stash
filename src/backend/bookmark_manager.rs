@@ -35,7 +35,17 @@ impl BookmarkManager {
             let json: HashMap<String, Vec<LinkModel>> =
                 serde_json::from_str(&data).expect("Failed to deserialize bookmarks");
             let mut json = json.into_iter().collect::<Vec<(String, Vec<LinkModel>)>>();
-            json.sort_by(|a, b| a.0.cmp(&b.0));
+            json.sort_by(|a, b| {
+                let a = a.0.split('_').collect::<Vec<&str>>()[0]
+                    .parse::<usize>()
+                    .unwrap();
+                let b = b.0.split('_').collect::<Vec<&str>>()[0]
+                    .parse::<usize>()
+                    .unwrap();
+
+                a.cmp(&b)
+            });
+            println!("{:?}", json);
 
             for (topic, links) in json {
                 let mut split = topic.split('_').collect::<Vec<&str>>();
@@ -93,7 +103,7 @@ impl BookmarkManager {
         let links = self.bookmarks.get_index(old_index).unwrap().1.clone();
         self.bookmarks.shift_remove_index(old_index);
         self.bookmarks.shift_insert(new_index, topic, links);
-        
+
         self.save_bookmarks(None);
     }
 
