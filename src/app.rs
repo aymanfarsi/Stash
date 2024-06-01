@@ -160,6 +160,7 @@ impl eframe::App for StashApp {
         }
 
         let min_size = *MIN_SIZE;
+        let mut clicked_on_button = false;
 
         // * Open modal
         let model_style = ModalStyle {
@@ -186,13 +187,17 @@ impl eframe::App for StashApp {
                 );
             });
             modal.buttons(ui, |ui| {
+                if modal.button(ui, "Close").clicked() {
+                    self.links_to_open.clear();
+                    clicked_on_button = true;
+                };
+
+                ui.add_space(5.);
+
                 if modal.button(ui, "Open").clicked() {
                     open_urls(&self.links_to_open);
                     self.links_to_open.clear();
-                };
-
-                if modal.button(ui, "Close").clicked() {
-                    self.links_to_open.clear();
+                    clicked_on_button = true;
                 };
             });
         });
@@ -325,25 +330,30 @@ impl eframe::App for StashApp {
                                 if ui.button("Open location").clicked() {
                                     open_file_location(OpenLocationType::Documents);
                                     ui.close_menu();
+                                    clicked_on_button = true;
                                 }
                                 if ui.button("Backup bookmarks").clicked() {
                                     backup_bookmarks();
                                     ui.close_menu();
+                                    clicked_on_button = true;
                                 }
                                 if ui.button("Toggle AlwaysOnTop").clicked() {
                                     self.tx
                                         .send(AppMessage::ToggleAlwaysOnTop)
                                         .expect("Unable to send");
                                     ui.close_menu();
+                                    clicked_on_button = true;
                                 }
                                 if ui.button("Settings").clicked() {
                                     self.app_page = AppPage::Settings;
                                     ui.close_menu();
+                                    clicked_on_button = true;
                                 }
                                 if ui.button("About").clicked() {
                                     let is_about_open = self.is_about_open.load(Ordering::Relaxed);
                                     self.is_about_open.store(!is_about_open, Ordering::Relaxed);
                                     ui.close_menu();
+                                    clicked_on_button = true;
                                 }
                             });
 
@@ -388,7 +398,6 @@ impl eframe::App for StashApp {
                                         );
 
                                     state.set_open(is_expanded);
-                                    let mut clicked_on_button = false;
 
                                     // ? Topic header
                                     let header_res = ui.horizontal(|ui| {
@@ -459,16 +468,19 @@ impl eframe::App for StashApp {
                                         if ui.button("Add Link").clicked() {
                                             self.open_add_link_viewport(topic.name.clone());
                                             ui.close_menu();
+                                            clicked_on_button = true;
                                         }
                                         if ui.button("Edit topic name").clicked() {
                                             self.open_edit_topic_viewport(topic.name.clone());
                                             ui.close_menu();
+                                            clicked_on_button = true;
                                         }
                                         if ui.button("Remove Topic").clicked() {
                                             self.tx
                                                 .send(AppMessage::RemoveTopic(topic.clone()))
                                                 .expect("Unable to send");
                                             ui.close_menu();
+                                            clicked_on_button = true;
                                         }
                                     });
 
@@ -531,6 +543,7 @@ impl eframe::App for StashApp {
                                                                         link.url.clone(),
                                                                     );
                                                                     ui.close_menu();
+                                                                    clicked_on_button = true;
                                                                 }
                                                                 if ui
                                                                     .button("Remove link")
@@ -545,6 +558,7 @@ impl eframe::App for StashApp {
                                                                         )
                                                                         .expect("Unable to send");
                                                                     ui.close_menu();
+                                                                    clicked_on_button = true;
                                                                 }
                                                             });
                                                         });
@@ -579,6 +593,7 @@ impl eframe::App for StashApp {
                             }
                             if info.clicked() {
                                 self.app_page = AppPage::Main;
+                                clicked_on_button = true;
                             }
 
                             if self.is_debug {
@@ -617,6 +632,7 @@ impl eframe::App for StashApp {
                                     if response.clicked() {
                                         theme.set_theme(ctx);
                                         self.current_theme = theme;
+                                        clicked_on_button = true;
                                     }
                                 }
                             });
