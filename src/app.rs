@@ -689,7 +689,7 @@ impl eframe::App for StashApp {
                     .with_resizable(false)
                     .with_maximize_button(false)
                     .with_minimize_button(false)
-                    .with_window_level(WindowLevel::Normal)
+                    .with_window_level(WindowLevel::AlwaysOnTop)
                     .with_min_inner_size(min_size),
                 move |ctx, class| {
                     assert!(
@@ -720,7 +720,7 @@ impl eframe::App for StashApp {
                     .with_resizable(false)
                     .with_maximize_button(false)
                     .with_minimize_button(false)
-                    .with_window_level(WindowLevel::Normal)
+                    .with_window_level(WindowLevel::AlwaysOnTop)
                     .with_min_inner_size(min_size),
                 move |ctx, class| {
                     assert!(
@@ -758,7 +758,7 @@ impl eframe::App for StashApp {
                     .with_resizable(false)
                     .with_maximize_button(false)
                     .with_minimize_button(false)
-                    .with_window_level(WindowLevel::Normal)
+                    .with_window_level(WindowLevel::AlwaysOnTop)
                     .with_min_inner_size(min_size),
                 move |ctx, class| {
                     assert!(
