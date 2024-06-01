@@ -455,15 +455,7 @@ impl eframe::App for StashApp {
                                     });
 
                                     let header_response = header_res.response.clone();
-                                    if header_response.rect.contains(
-                                        ui.input(|i| i.pointer.hover_pos().unwrap_or(Pos2::ZERO)),
-                                    ) && ui.input(|i| {
-                                        i.pointer.primary_clicked() && !clicked_on_button
-                                    }) {
-                                        self.tx
-                                            .send(AppMessage::ToggleCollapsed(idx))
-                                            .expect("Unable to send");
-                                    }
+
                                     header_response.context_menu(|ui| {
                                         if ui.button("Add Link").clicked() {
                                             self.open_add_link_viewport(topic.name.clone());
@@ -483,6 +475,17 @@ impl eframe::App for StashApp {
                                             clicked_on_button = true;
                                         }
                                     });
+
+                                    let hov_pos =
+                                        ui.input(|i| i.pointer.hover_pos().unwrap_or(Pos2::ZERO));
+                                    if header_response.rect.contains(hov_pos)
+                                        && ui.input(|i| i.pointer.primary_clicked())
+                                        && !clicked_on_button
+                                    {
+                                        self.tx
+                                            .send(AppMessage::ToggleCollapsed(idx))
+                                            .expect("Unable to send");
+                                    }
 
                                     state.show_body_unindented(ui, |ui| {
                                         ui.add_space(5.);
