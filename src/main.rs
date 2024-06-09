@@ -2,7 +2,7 @@
 
 use tokio::runtime::Runtime;
 
-use stash::utils::{run_first_error_app::run_first_error_app, run_main_app::run_main_app};
+use Stash::utils::{run_first_error_app::run_first_error_app, run_main_app::run_main_app};
 
 fn check_env() -> Result<(), String> {
     #[cfg(any(target_os = "windows", target_os = "linux"))]

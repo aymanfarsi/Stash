@@ -1,15 +1,10 @@
 [package]
-name = "stash"
+name = "Stash"
 version = "0.5.1"
 authors = ["evilDAVE <aymanfarsi99@proton.me>"]
 edition = "2021"
 description = "A new way to manage your bookmarks!"
 license = "MIT"
-
-[package.metadata.bundle]
-name = "Stash"
-identifier = "io.github.aymanfarsi.stash"
-icon = ["assets/*.ico"]
 
 [dependencies]
 eframe = { version = "0.27.2", default-features = false, features = [

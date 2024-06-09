@@ -3,6 +3,30 @@
 version = 3
 
 [[package]]
+name = "Stash"
+version = "0.5.1"
+dependencies = [
+ "catppuccin-egui",
+ "chrono",
+ "crossbeam",
+ "directories",
+ "eframe",
+ "egui",
+ "egui-modal",
+ "egui-phosphor",
+ "egui_extras",
+ "image 0.25.1",
+ "indexmap",
+ "lazy_static",
+ "serde",
+ "serde_json",
+ "tokio",
+ "webbrowser 1.0.1",
+ "winapi",
+ "winres",
+]
+
+[[package]]
 name = "ab_glyph"
 version = "0.2.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2350,30 +2374,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 dependencies = [
  "lock_api",
-]
-
-[[package]]
-name = "stash"
-version = "0.5.1"
-dependencies = [
- "catppuccin-egui",
- "chrono",
- "crossbeam",
- "directories",
- "eframe",
- "egui",
- "egui-modal",
- "egui-phosphor",
- "egui_extras",
- "image 0.25.1",
- "indexmap",
- "lazy_static",
- "serde",
- "serde_json",
- "tokio",
- "webbrowser 1.0.1",
- "winapi",
- "winres",
 ]
 
 [[package]]
