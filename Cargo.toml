@@ -1,8 +1,10 @@
 [package]
 name = "stash"
 version = "0.5.1"
+authors = ["evilDAVE <aymanfarsi99@proton.me>"]
 edition = "2021"
 description = "A new way to manage your bookmarks!"
+license = "MIT"
 
 [package.metadata.bundle]
 name = "Stash"
