@@ -12,7 +12,7 @@ fn check_env() -> Result<(), String> {
 
     #[cfg(target_os = "macos")]
     {
-        Err("Stash is only supported on Windows for now!".to_string())
+        Err("Stash is only supported on Windows and Linux for now!".to_string())
     }
 }
 
