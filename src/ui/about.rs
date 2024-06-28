@@ -37,7 +37,7 @@ impl AboutViewport {
 
             ui.vertical_centered(|ui| {
                 ui.add(
-                    Image::new(include_image!("../../assets/app-icon.png"))
+                    Image::new(include_image!("../../assets/stash.png"))
                         .rounding(Rounding::same(4.0))
                         .fit_to_exact_size(vec2(100., 100.))
                         .show_loading_spinner(true),

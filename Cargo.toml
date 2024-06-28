@@ -1,5 +1,5 @@
 [package]
-name = "Stash"
+name = "stash"
 version = "0.5.1"
 authors = ["evilDAVE <aymanfarsi99@proton.me>"]
 edition = "2021"

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+echo "Building Stash"
+
+desktop_file=$(cat << EOM
+[Desktop Entry]
+Type=Application
+Name=Stash
+Comment=Stash is a new way to manage your bookmarks for no need to keep tabs open.
+Exec=stash
+Icon=$HOME/.local/share/icons/stash.png
+Terminal=false
+Categories=Utility;Application;
+EOM
+)
+
+if [[ $(uname -s) == *NT* ]]; then
+    echo "Building for Linux"
+    cargo install --path .
+elif [[ $(uname -s) == *Darwin* ]]; then
+    echo "Building for MacOS"
+    cargo install --path .
+else
+    echo "Building for Linux"
+    cargo install --path .
+    echo "$desktop_file" > $HOME/.local/share/applications/stash.desktop
+    cp assets/stash.png $HOME/.local/share/icons/stash.png
+fi
+
+echo "Stash built successfully"

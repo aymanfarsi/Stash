@@ -20,7 +20,7 @@ pub fn run_main_app() -> Result<(), eframe::Error> {
             .with_taskbar(true)
             .with_visible(true)
             .with_icon(
-                from_png_bytes(include_bytes!("../../assets/app-icon.png"))
+                from_png_bytes(include_bytes!("../../assets/stash.png"))
                     .expect("Failed to load icon"),
             )
             .with_app_id("io.github.aymanfarsi.stash"),

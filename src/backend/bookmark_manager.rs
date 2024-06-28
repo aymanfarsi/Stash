@@ -45,7 +45,6 @@ impl BookmarkManager {
 
                 a.cmp(&b)
             });
-            println!("{:?}", json);
 
             for (topic, links) in json {
                 let mut split = topic.split('_').collect::<Vec<&str>>();

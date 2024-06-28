@@ -12,7 +12,7 @@ pub fn run_first_error_app(error: String) -> Result<(), eframe::Error> {
             .with_window_level(WindowLevel::Normal)
             .with_min_inner_size(min_size)
             .with_icon(
-                from_png_bytes(include_bytes!("../../assets/app-icon.png"))
+                from_png_bytes(include_bytes!("../../assets/stash.png"))
                     .expect("Failed to load icon"),
             )
             .with_app_id("io.github.aymanfarsi.stash"),
