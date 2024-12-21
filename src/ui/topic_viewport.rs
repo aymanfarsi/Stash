@@ -14,7 +14,7 @@ use super::components::custom_button;
 pub struct TopicViewport {
     old_name: String,
     new_name: String,
-    
+
     is_editing: bool,
 }
 
@@ -80,7 +80,7 @@ impl TopicViewport {
                 ui.add_space(button_spacing);
 
                 custom_button(ui, "Cancel", Some(button_width), || {
-                    self.exit_viewport(ctx);
+                    self.clear_exit_viewport(ctx, true);
                 });
 
                 ui.add_space(spacing_around);
@@ -123,7 +123,7 @@ impl TopicViewport {
             let res = tx.send(msg);
             match res {
                 Ok(_) => {
-                    self.exit_viewport(ctx);
+                    self.clear_exit_viewport(ctx, false);
                 }
                 Err(e) => {
                     eprintln!("Error: {}", e);
@@ -132,9 +132,12 @@ impl TopicViewport {
         }
     }
 
-    fn exit_viewport(&mut self, ctx: &egui::Context) {
+    fn clear_exit_viewport(&mut self, ctx: &egui::Context, should_exit: bool) {
         self.new_name.clear();
-        self.is_editing = false;
-        ctx.send_viewport_cmd(ViewportCommand::Close);
+
+        if self.is_editing || should_exit {
+            self.is_editing = false;
+            ctx.send_viewport_cmd(ViewportCommand::Close);
+        }
     }
 }

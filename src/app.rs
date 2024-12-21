@@ -209,16 +209,12 @@ impl eframe::App for StashApp {
                 AppMessage::AddTopic(topic) => {
                     self.bookmark_manager.add_topic(BookmarkItem::Topic(topic));
                     self.expanded_topics.push(false);
-
-                    ctx.request_repaint();
                 }
                 AppMessage::EditTopic(old_topic, new_topic) => {
                     self.bookmark_manager.edit_topic(
                         BookmarkItem::Topic(old_topic.clone()),
                         BookmarkItem::Topic(new_topic),
                     );
-
-                    ctx.request_repaint();
                 }
                 AppMessage::RemoveTopic(topic) => {
                     self.bookmark_manager
@@ -231,8 +227,6 @@ impl eframe::App for StashApp {
                         .position(|t| t == &topic)
                         .unwrap_or_default();
                     self.expanded_topics.remove(idx);
-
-                    ctx.request_repaint();
                 }
 
                 // * Links
@@ -247,8 +241,6 @@ impl eframe::App for StashApp {
 
                     self.bookmark_manager
                         .add_link(BookmarkItem::Topic(topic.clone()), BookmarkItem::Link(link));
-
-                    ctx.request_repaint();
                 }
                 AppMessage::EditLink(name, old_link, link) => {
                     let topic = self
@@ -264,8 +256,6 @@ impl eframe::App for StashApp {
                         BookmarkItem::Link(old_link),
                         BookmarkItem::Link(link),
                     );
-
-                    ctx.request_repaint();
                 }
                 AppMessage::RemoveLink(name, link) => {
                     let topic = self
@@ -278,16 +268,12 @@ impl eframe::App for StashApp {
 
                     self.bookmark_manager
                         .remove_link(BookmarkItem::Topic(topic.clone()), BookmarkItem::Link(link));
-
-                    ctx.request_repaint();
                 }
 
                 // * UI
                 AppMessage::ToggleCollapsed(index) => {
                     let is_expanded = self.expanded_topics.get(index).copied().unwrap_or(false);
                     self.expanded_topics[index] = !is_expanded;
-
-                    ctx.request_repaint();
                 }
 
                 // * Misc
@@ -305,11 +291,12 @@ impl eframe::App for StashApp {
                         }
                         _ => WindowLevel::Normal,
                     };
-                    ctx.send_viewport_cmd(ViewportCommand::WindowLevel(self.window_level));
 
-                    ctx.request_repaint();
+                    ctx.send_viewport_cmd(ViewportCommand::WindowLevel(self.window_level));
                 }
             }
+
+            ctx.request_repaint();
         }
 
         match self.app_page {

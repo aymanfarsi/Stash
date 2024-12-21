@@ -1,5 +1,5 @@
 use eframe::{icon_data::from_png_bytes, Theme};
-use egui::ViewportBuilder;
+use egui::{ViewportBuilder, X11WindowType};
 
 use crate::app::StashApp;
 
@@ -23,7 +23,8 @@ pub fn run_main_app() -> Result<(), eframe::Error> {
                 from_png_bytes(include_bytes!("../../assets/stash.png"))
                     .expect("Failed to load icon"),
             )
-            .with_app_id("io.github.aymanfarsi.stash"),
+            .with_app_id("io.github.aymanfarsi.stash")
+            .with_window_type(X11WindowType::Normal),
         default_theme: Theme::Dark,
         centered: true,
         vsync: true,

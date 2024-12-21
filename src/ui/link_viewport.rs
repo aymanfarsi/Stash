@@ -111,7 +111,7 @@ impl LinkViewport {
                 ui.add_space(button_spacing);
 
                 custom_button(ui, "Cancel", Some(button_width), || {
-                    self.exit_viewport(ctx);
+                    self.exit_viewport(ctx, true);
                 });
 
                 ui.add_space(spacing_around);
@@ -162,7 +162,7 @@ impl LinkViewport {
             let res = tx.send(msg);
             match res {
                 Ok(_) => {
-                    self.exit_viewport(ctx);
+                    self.exit_viewport(ctx, false);
                 }
                 Err(e) => {
                     eprintln!("Error: {}", e);
@@ -171,17 +171,17 @@ impl LinkViewport {
         }
     }
 
-    fn exit_viewport(&mut self, ctx: &egui::Context) {
-        self.topic_name.clear();
-        self.old_title.clear();
-        self.old_url.clear();
-
+    fn exit_viewport(&mut self, ctx: &egui::Context, should_exit: bool) {
         self.new_title.clear();
         self.new_url.clear();
         self.preview = None;
 
-        self.is_editing = false;
-
-        ctx.send_viewport_cmd(ViewportCommand::Close);
+        if self.is_editing || should_exit {
+            self.topic_name.clear();
+            self.old_title.clear();
+            self.old_url.clear();
+            self.is_editing = false;
+            ctx.send_viewport_cmd(ViewportCommand::Close);
+        }
     }
 }
